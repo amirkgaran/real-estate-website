@@ -1,17 +1,64 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Residential | Amir Geran</title><link rel="stylesheet" href="styles.css"></head><body>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Residential listings and investment information.">
+  <title>Residential | Amir Geran</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-category="Residential">
 <header class="site-header">
-<div class="shell nav-wrap">
-<a class="brand" href="index.html">AG</a>
-<button class="menu-toggle" id="menuToggle" aria-label="Open navigation" aria-expanded="false"><span></span><span></span><span></span></button>
-<nav class="nav-links" id="navLinks">
-<a href="index.html">Home</a><a href="about.html">About</a><a href="contact.html">Contact</a>
-</nav></div></header><main>
-<section class="page-hero shell"><a class="back" href="index.html">← Back to Home</a><p class="eyebrow">Investment category</p><h1>Residential</h1><p class="intro">Explore residential properties for personal ownership, resale potential, rental income and long-term appreciation.</p></section>
-<section class="category-body shell">
-<aside class="explain"><p class="eyebrow">Investment perspective</p><h2>What we look at</h2><ul><li>Location and neighbourhood demand</li><li>Comparable pricing and value</li><li>Rental potential and carrying costs</li><li>Renovation and resale considerations</li></ul></aside>
-<div class="listing-area"><div class="listing-heading"><div><p class="eyebrow">Listings</p><h2>Current opportunities</h2></div><a href="contact.html">Request details →</a></div>
-<div class="listing-grid">
-<article class="listing-card"><div class="photo">Listing photo</div><div><p class="type">Residential</p><h3>Featured opportunity</h3><p>Add the property location, price, features and investment highlights here.</p><a href="contact.html">Ask for details →</a></div></article>
-<article class="listing-card"><div class="photo">Listing photo</div><div><p class="type">Residential</p><h3>Available listing</h3><p>Add a second active listing here with the information an investor needs.</p><a href="contact.html">Ask for details →</a></div></article>
-<article class="listing-card"><div class="photo">Listing photo</div><div><p class="type">Residential</p><h3>Investment opportunity</h3><p>Add another listing here, including price, location and investment considerations.</p><a href="contact.html">Ask for details →</a></div></article>
-</div></div></section></main><footer><div class="shell footer-inner"><span>© 2026 Amir Geran</span><span>Broker · International Realty Firm</span></div></footer><script src="script.js"></script></body></html>
+  <div class="shell nav-wrap">
+    <a class="brand" href="index.html">AG</a>
+    <button class="menu-toggle" id="menuToggle" aria-label="Open navigation" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+    <nav class="nav-links" id="navLinks">
+      <a href="index.html">Home</a>
+      <a href="about.html">About</a>
+      <a href="contact.html">Contact</a>
+    </nav>
+  </div>
+</header>
+<main>
+  <section class="page-hero shell">
+    <a class="back" href="index.html">← Back to Home</a>
+    <p class="eyebrow">Investment category</p>
+    <h1>Residential</h1>
+    <p class="intro">Explore residential properties for personal ownership, resale potential, rental income and long-term appreciation.</p>
+  </section>
+
+  <section class="category-body shell">
+    <aside class="explain">
+      <p class="eyebrow">Investment perspective</p>
+      <h2>What we look at</h2>
+      <ul><li>Location and neighbourhood demand</li><li>Comparable pricing and value</li><li>Rental potential and carrying costs</li><li>Renovation and resale considerations</li></ul>
+    </aside>
+
+    <div class="listing-area">
+      <div class="listing-heading">
+        <div>
+          <p class="eyebrow">Listings</p>
+          <h2>Current opportunities</h2>
+        </div>
+        <a href="contact.html">Request details →</a>
+      </div>
+
+      <div id="listingStatus" class="status-message">Loading listings…</div>
+      <div id="listingGrid" class="listing-grid"></div>
+    </div>
+  </section>
+</main>
+<footer>
+  <div class="shell footer-inner">
+    <span>© 2026 Amir Geran</span>
+    <span>Broker · International Realty Firm</span>
+  </div>
+</footer>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="script.js"></script>
+<script src="listings.js"></script>
+</body>
+</html>

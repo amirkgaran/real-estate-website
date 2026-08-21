@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Private listing management for myinvest.ca.">
+  <title>Admin | myinvest.ca</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="admin-body">
+<header class="site-header">
+  <div class="shell nav-wrap">
+    <a class="brand" href="index.html">AG</a>
+    <button class="menu-toggle" id="menuToggle" aria-label="Open navigation" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+    <nav class="nav-links" id="navLinks">
+      <a href="index.html">Home</a>
+      <a href="about.html">About</a>
+      <a href="contact.html">Contact</a>
+    </nav>
+  </div>
+</header>
+<main class="shell admin-main">
+  <section class="admin-title">
+    <p class="eyebrow">Private administration</p>
+    <h1>Listing Manager</h1>
+    <p>Add, edit, publish and remove listings shown on myinvest.ca.</p>
+  </section>
+
+  <section id="setupWarning" class="notice warning hidden">
+    Supabase has not been configured yet. Add your Project URL and anon key to <code>config.js</code>.
+  </section>
+
+  <section id="loginPanel" class="admin-panel">
+    <h2>Admin sign in</h2>
+    <form id="loginForm" class="admin-form compact-form">
+      <label>Email<input id="loginEmail" type="email" required autocomplete="username"></label>
+      <label>Password<input id="loginPassword" type="password" required autocomplete="current-password"></label>
+      <button type="submit" class="button">Sign in</button>
+      <p id="loginMessage" class="form-message"></p>
+    </form>
+  </section>
+
+  <section id="dashboard" class="hidden">
+    <div class="dashboard-bar">
+      <div><strong id="signedInAs"></strong><div class="small-muted">Authenticated administrator</div></div>
+      <button id="logoutButton" class="button secondary">Sign out</button>
+    </div>
+
+    <section class="admin-grid">
+      <div class="admin-panel">
+        <div class="panel-heading">
+          <h2 id="formTitle">Add listing</h2>
+          <button id="cancelEditButton" class="text-button hidden" type="button">Cancel edit</button>
+        </div>
+
+        <form id="listingForm" class="admin-form">
+          <input id="listingId" type="hidden">
+
+          <label>Category
+            <select id="category" required>
+              <option value="Residential">Residential</option>
+              <option value="Multi Residential">Multi Residential</option>
+              <option value="Commercial">Commercial</option>
+              <option value="Financial Market">Financial Market</option>
+            </select>
+          </label>
+
+          <label>Listing title
+            <input id="title" type="text" required placeholder="Example: Richmond Hill detached home">
+          </label>
+
+          <div class="form-two">
+            <label>Price
+              <input id="price" type="text" placeholder="$1,295,000">
+            </label>
+            <label>Location
+              <input id="location" type="text" placeholder="Richmond Hill, ON">
+            </label>
+          </div>
+
+          <label>Description
+            <textarea id="description" rows="6" required placeholder="Describe the property or investment opportunity."></textarea>
+          </label>
+
+          <label>Investment highlights
+            <textarea id="highlights" rows="4" placeholder="Example: Rental income potential, corner lot, transit access"></textarea>
+          </label>
+
+          <label>Photos
+            <input id="images" type="file" accept="image/*" multiple>
+            <span class="field-help">You can upload several photos. When editing, new photos are added to the existing ones.</span>
+          </label>
+
+          <label class="checkbox-row">
+            <input id="published" type="checkbox" checked>
+            <span>Publish this listing on the website</span>
+          </label>
+
+          <button id="saveButton" class="button" type="submit">Publish listing</button>
+          <p id="formMessage" class="form-message"></p>
+        </form>
+      </div>
+
+      <div class="admin-panel">
+        <div class="panel-heading">
+          <h2>Your listings</h2>
+          <button id="refreshButton" class="text-button" type="button">Refresh</button>
+        </div>
+        <div id="adminListingStatus" class="status-message">Loading…</div>
+        <div id="adminListings" class="admin-listings"></div>
+      </div>
+    </section>
+  </section>
+</main>
+<footer>
+  <div class="shell footer-inner">
+    <span>© 2026 Amir Geran</span>
+    <span>Broker · International Realty Firm</span>
+  </div>
+</footer>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="script.js"></script>
+<script src="admin.js"></script>
+</body>
+</html>
