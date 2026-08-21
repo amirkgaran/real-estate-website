@@ -22,3 +22,4 @@ Open index.html in a browser.
 Before publishing:
 Replace the sample phone number, email, prices, locations, and listings with your real information.
 The contact form currently uses info@geranrealestate.com. Replace it with your actual email.
+-Last updated: August 21, 2026
