@@ -16,3 +16,43 @@
 .gallery-thumb img{width:100%;height:100%;object-fit:cover;display:block}
 .gallery-thumb:hover{opacity:.82}
 @media(max-width:600px){.gallery-main{height:280px}.gallery-thumbnails{grid-template-columns:repeat(3,minmax(0,1fr))}}
+/* Homepage alignment fix
+   Replace the existing .hero and .hero-message rules with these values,
+   or paste this block at the very end of styles.css so it overrides them. */
+
+.hero {
+  min-height: calc(100vh - 84px);
+  display: grid;
+  grid-template-columns: 0.92fr 1.08fr;
+  gap: 80px;
+  align-items: start;
+  padding: 70px 0 80px;
+}
+
+.hero-left {
+  display: flex;
+  flex-direction: column;
+  gap: 48px;
+  align-self: start;
+}
+
+.hero-message {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  align-self: start;
+}
+
+.profile-card,
+.message-frame {
+  margin-top: 0;
+}
+
+/* Keep both columns aligned on desktop */
+@media (min-width: 901px) {
+  .hero-left,
+  .hero-message {
+    padding-top: 0;
+  }
+}
+
