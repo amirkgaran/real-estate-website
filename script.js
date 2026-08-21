@@ -1,1 +1,16 @@
-const menuToggle=document.getElementById("menuToggle");const navLinks=document.getElementById("navLinks");menuToggle.addEventListener("click",()=>navLinks.classList.toggle("open"));document.querySelectorAll(".nav-links a").forEach(link=>{link.addEventListener("click",()=>navLinks.classList.remove("open"))});const filters=document.querySelectorAll(".filter");const cards=document.querySelectorAll(".property-card");filters.forEach(button=>{button.addEventListener("click",()=>{filters.forEach(filter=>filter.classList.remove("active"));button.classList.add("active");const category=button.dataset.filter;cards.forEach(card=>{const match=category==="all"||card.dataset.category===category;card.classList.toggle("hidden",!match)})})});
+const menuToggle = document.getElementById("menuToggle");
+const navLinks = document.getElementById("navLinks");
+
+if (menuToggle && navLinks) {
+  menuToggle.addEventListener("click", () => {
+    const open = navLinks.classList.toggle("open");
+    menuToggle.setAttribute("aria-expanded", String(open));
+  });
+
+  navLinks.querySelectorAll("a").forEach((link) => {
+    link.addEventListener("click", () => {
+      navLinks.classList.remove("open");
+      menuToggle.setAttribute("aria-expanded", "false");
+    });
+  });
+}
