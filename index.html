@@ -1,237 +1,115 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Amir Geran | Broker | International Realty Firm</title>
-  <meta name="description" content="Amir Geran, Broker at International Realty Firm, providing residential, leasing, and commercial real estate services." />
+  <meta name="description" content="Amir Geran, Broker at International Realty Firm — residential, multi-residential, commercial and financial market investment opportunities." />
+  <title>Amir Geran | Investment & Real Estate</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
+
 <body>
   <header class="site-header">
-    <nav class="navbar">
-      <a href="#home" class="logo">
-        <span class="logo-mark">G</span>
-        <span>International Realty Firm</span>
-      </a>
-      <button class="menu-toggle" id="menuToggle" aria-label="Open menu">☰</button>
-      <div class="nav-links" id="navLinks">
-        <a href="#properties">Properties</a>
-        <a href="#investment">Investment</a>
-        <a href="#services">Services</a>
+    <div class="shell nav-wrap">
+      <a class="brand" href="#home" aria-label="Amir Geran home">AG</a>
+
+      <button class="menu-toggle" id="menuToggle" aria-label="Open navigation" aria-expanded="false">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+
+      <nav class="nav-links" id="navLinks">
+        <a href="#home">Home</a>
         <a href="#about">About</a>
-        <a href="#contact" class="nav-cta">Contact</a>
-      </div>
-    </nav>
+        <a href="#contact">Contact</a>
+      </nav>
+    </div>
   </header>
 
   <main>
-    <section class="hero" id="home">
-      <div class="hero-content">
-        <p class="eyebrow">Amir Geran • Broker • International Realty Firm</p>
-        <h1>Find real estate opportunities for income, growth, and long-term value.</h1>
-        <p class="hero-text">
-          Explore houses and apartments for lease or sale, plus commercial investment opportunities selected for location, cash flow, and future potential.
-        </p>
-        <div class="hero-actions">
-          <a href="#properties" class="button primary">View Listings</a>
-          <a href="#contact" class="button secondary">Request Consultation</a>
+    <section class="hero shell" id="home">
+      <div class="hero-left">
+        <div class="profile-card">
+          <p class="profile-label">Investment & Real Estate</p>
+          <h1>Amir Geran</h1>
+          <p class="role">Broker</p>
+          <p class="firm">International Realty Firm</p>
+
+          <div class="contact-lines">
+            <a href="tel:+14166164634">
+              <span>Cell</span>
+              <strong>416-616-4634</strong>
+            </a>
+            <a href="mailto:amirkgaran@gmail.com">
+              <span>Email</span>
+              <strong>amirkgaran@gmail.com</strong>
+            </a>
+          </div>
         </div>
-        <div class="hero-stats">
-          <div><strong>Residential</strong><span>Homes & condos</span></div>
-          <div><strong>Lease</strong><span>Tenant-ready units</span></div>
-          <div><strong>Commercial</strong><span>Investment assets</span></div>
+
+        <div class="focus-list" aria-label="Investment focus areas">
+          <div class="focus-item"><span>01</span><h2>Residential</h2></div>
+          <div class="focus-item"><span>02</span><h2>Multi Residential</h2></div>
+          <div class="focus-item"><span>03</span><h2>Commercial</h2></div>
+          <div class="focus-item"><span>04</span><h2>Financial Market</h2></div>
         </div>
       </div>
 
-      <div class="hero-card">
-        <div class="hero-card-top">
-          <span>Featured Opportunity</span>
-          <strong>Mixed-use commercial asset</strong>
+      <div class="hero-message">
+        <div class="message-frame">
+          <p class="small-kicker">Invest with clarity</p>
+          <h2>Your true pathway for profitable investment.</h2>
+          <p class="message-copy">
+            A focused approach to real estate and investment opportunities built around value,
+            income potential and long-term growth.
+          </p>
+          <a class="cta" href="#contact">Start a conversation <span>→</span></a>
         </div>
-        <div class="price">$2.4M</div>
-        <p>Prime street exposure, stable tenants, redevelopment upside, and strong surrounding demand.</p>
-        <a href="#contact">Ask for details →</a>
       </div>
     </section>
 
-    <section class="section intro">
-      <div>
-        <p class="eyebrow">What we focus on</p>
-        <h2>Real estate options for buyers, tenants, landlords, and investors.</h2>
-      </div>
-      <p>
-        This website presents available properties clearly, captures qualified leads, and shows residential and commercial investment opportunities in one professional place.
-      </p>
-    </section>
-
-    <section class="section" id="properties">
-      <div class="section-heading">
-        <div>
-          <p class="eyebrow">Listings</p>
-          <h2>Properties for sale and lease</h2>
-        </div>
-        <div class="filters">
-          <button class="filter active" data-filter="all">All</button>
-          <button class="filter" data-filter="sale">For Sale</button>
-          <button class="filter" data-filter="lease">For Lease</button>
-          <button class="filter" data-filter="commercial">Commercial</button>
-        </div>
-      </div>
-
-      <div class="property-grid">
-        <article class="property-card" data-category="sale">
-          <div class="property-image house"></div>
-          <div class="property-body">
-            <div class="property-tag">For Sale</div>
-            <h3>Detached Family Home</h3>
-            <p class="location">Richmond Hill, ON</p>
-            <p>Spacious detached home with finished basement, parking, and strong family-neighbourhood appeal.</p>
-            <div class="property-meta"><span>4 Beds</span><span>3 Baths</span><span>2 Garage</span></div>
-            <div class="property-footer"><strong>$1,349,000</strong><a href="#contact">Inquire</a></div>
-          </div>
-        </article>
-
-        <article class="property-card" data-category="lease">
-          <div class="property-image condo"></div>
-          <div class="property-body">
-            <div class="property-tag">For Lease</div>
-            <h3>Modern Condo Apartment</h3>
-            <p class="location">North York, ON</p>
-            <p>Bright condo near transit, shopping, and restaurants. Ideal for professionals or small families.</p>
-            <div class="property-meta"><span>2 Beds</span><span>2 Baths</span><span>Parking</span></div>
-            <div class="property-footer"><strong>$2,850/mo</strong><a href="#contact">Inquire</a></div>
-          </div>
-        </article>
-
-        <article class="property-card" data-category="commercial">
-          <div class="property-image commercial"></div>
-          <div class="property-body">
-            <div class="property-tag">Commercial Investment</div>
-            <h3>Retail Plaza Unit</h3>
-            <p class="location">Greater Toronto Area</p>
-            <p>Income-producing commercial space with tenant demand, street exposure, and long-term upside.</p>
-            <div class="property-meta"><span>Retail</span><span>Income</span><span>High Traffic</span></div>
-            <div class="property-footer"><strong>Contact for price</strong><a href="#contact">Inquire</a></div>
-          </div>
-        </article>
-
-        <article class="property-card" data-category="sale">
-          <div class="property-image townhouse"></div>
-          <div class="property-body">
-            <div class="property-tag">For Sale</div>
-            <h3>Investment Townhouse</h3>
-            <p class="location">Vaughan, ON</p>
-            <p>Low-maintenance property with strong rental potential and access to highways and amenities.</p>
-            <div class="property-meta"><span>3 Beds</span><span>3 Baths</span><span>Rental Potential</span></div>
-            <div class="property-footer"><strong>$949,000</strong><a href="#contact">Inquire</a></div>
-          </div>
-        </article>
-
-        <article class="property-card" data-category="lease">
-          <div class="property-image apartment"></div>
-          <div class="property-body">
-            <div class="property-tag">For Lease</div>
-            <h3>Basement Apartment</h3>
-            <p class="location">Richmond Hill, ON</p>
-            <p>Clean private apartment with separate entrance, suitable for a single tenant or couple.</p>
-            <div class="property-meta"><span>1 Bed</span><span>1 Bath</span><span>Separate Entry</span></div>
-            <div class="property-footer"><strong>$1,750/mo</strong><a href="#contact">Inquire</a></div>
-          </div>
-        </article>
-
-        <article class="property-card" data-category="commercial">
-          <div class="property-image office"></div>
-          <div class="property-body">
-            <div class="property-tag">Commercial Lease</div>
-            <h3>Professional Office Space</h3>
-            <p class="location">Markham, ON</p>
-            <p>Flexible office space suitable for professional services, consulting, clinics, or small businesses.</p>
-            <div class="property-meta"><span>Office</span><span>Flexible</span><span>Parking</span></div>
-            <div class="property-footer"><strong>$28/sq ft</strong><a href="#contact">Inquire</a></div>
-          </div>
-        </article>
-      </div>
-    </section>
-
-    <section class="section investment" id="investment">
-      <div class="investment-content">
-        <p class="eyebrow">Investment approach</p>
-        <h2>We look beyond the listing price.</h2>
+    <section class="about-section shell" id="about">
+      <div class="section-number">01</div>
+      <div class="section-copy">
+        <p class="section-eyebrow">About</p>
+        <h2>Real estate guidance with an investment mindset.</h2>
         <p>
-          A strong real estate decision depends on rentability, location quality, operating costs, financing, tenant demand, future zoning potential, and downside protection.
+          Amir Geran is a Broker with International Realty Firm, helping clients consider
+          residential, multi-residential and commercial opportunities with attention to
+          income potential, long-term value and practical market considerations.
         </p>
       </div>
-      <div class="investment-grid">
-        <div class="info-card"><h3>Cash Flow</h3><p>Review rent potential, expenses, vacancy risk, and realistic monthly carrying costs.</p></div>
-        <div class="info-card"><h3>Appreciation</h3><p>Focus on areas with infrastructure, population growth, transit access, and long-term demand.</p></div>
-        <div class="info-card"><h3>Commercial Upside</h3><p>Identify income-producing assets, tenant quality, lease terms, and redevelopment possibilities.</p></div>
-      </div>
     </section>
 
-    <section class="section services" id="services">
-      <div class="section-heading">
-        <div>
-          <p class="eyebrow">Services</p>
-          <h2>How we can help</h2>
-        </div>
+    <section class="contact-section shell" id="contact">
+      <div class="contact-intro">
+        <p class="section-eyebrow">Contact</p>
+        <h2>Let’s discuss your next investment.</h2>
       </div>
-      <div class="service-grid">
-        <div class="service"><span>01</span><h3>Residential Purchase</h3><p>Support for buyers looking for homes, condos, townhouses, and long-term investment properties.</p></div>
-        <div class="service"><span>02</span><h3>Leasing</h3><p>Help landlords present rental properties and help tenants find suitable homes and apartments.</p></div>
-        <div class="service"><span>03</span><h3>Commercial Investment</h3><p>Commercial listing review, tenant profile review, and opportunity screening.</p></div>
-        <div class="service"><span>04</span><h3>Portfolio Strategy</h3><p>Guidance on buying, holding, renting, selling, and repositioning real estate assets.</p></div>
-      </div>
-    </section>
 
-    <section class="section about" id="about">
-      <div>
-        <p class="eyebrow">About</p>
-        <h2>Meet Amir Geran, Broker at International Realty Firm.</h2>
-      </div>
-      <p>
-        Amir Geran is a Broker with International Realty Firm, helping clients review residential and commercial properties with an investor mindset. Whether you are buying a home, leasing an apartment, selling a house, or exploring commercial opportunities, the goal is to make the process clearer, faster, and more informed.
-      </p>
-    </section>
-
-    <section class="section contact" id="contact">
-      <div class="contact-card">
-        <div>
-          <p class="eyebrow">Contact</p>
-          <h2>Request property information</h2>
-          <p>Send your name, phone number, property type, and budget. Replace the contact details below with your own before publishing.</p>
-          <div class="contact-details">
-            <p><strong>Amir Geran</strong></p>
-            <p><strong>Title:</strong> Broker</p>
-            <p><strong>Company:</strong> International Realty Firm</p>
-            <p><strong>Phone:</strong> +1 (000) 000-0000</p>
-            <p><strong>Email:</strong> info@geranrealestate.com</p>
-            <p><strong>Area:</strong> Greater Toronto Area</p>
-          </div>
-        </div>
-        <form class="contact-form" action="mailto:info@geranrealestate.com" method="post" enctype="text/plain">
-          <label>Name<input type="text" name="name" placeholder="Your name" required /></label>
-          <label>Email<input type="email" name="email" placeholder="you@example.com" required /></label>
-          <label>Interest
-            <select name="interest">
-              <option>House for sale</option>
-              <option>Apartment for lease</option>
-              <option>Commercial investment</option>
-              <option>Property consultation</option>
-            </select>
-          </label>
-          <label>Message<textarea name="message" rows="5" placeholder="Tell us what you are looking for"></textarea></label>
-          <button type="submit" class="button primary">Send Inquiry</button>
-        </form>
+      <div class="contact-box">
+        <a href="tel:+14166164634">
+          <span>Call</span>
+          <strong>416-616-4634</strong>
+        </a>
+        <a href="mailto:amirkgaran@gmail.com">
+          <span>Email</span>
+          <strong>amirkgaran@gmail.com</strong>
+        </a>
       </div>
     </section>
   </main>
 
-  <footer class="footer">
-    <p>© 2026 International Realty Firm. Amir Geran, Broker. All rights reserved.</p>
-    <p class="small">Listings are sample placeholders. Replace with verified property details before publishing.</p>
+  <footer>
+    <div class="shell footer-inner">
+      <span>© 2026 Amir Geran</span>
+      <span>Broker · International Realty Firm</span>
+    </div>
   </footer>
 
   <script src="script.js"></script>
 </body>
 </html>
+
