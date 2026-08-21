@@ -1,16 +1,1 @@
-const menuToggle = document.getElementById("menuToggle");
-const navLinks = document.getElementById("navLinks");
-
-if (menuToggle && navLinks) {
-  menuToggle.addEventListener("click", () => {
-    const open = navLinks.classList.toggle("open");
-    menuToggle.setAttribute("aria-expanded", String(open));
-  });
-
-  navLinks.querySelectorAll("a").forEach((link) => {
-    link.addEventListener("click", () => {
-      navLinks.classList.remove("open");
-      menuToggle.setAttribute("aria-expanded", "false");
-    });
-  });
-}
+const b=document.getElementById('menuToggle'),n=document.getElementById('navLinks');if(b&&n){b.onclick=()=>{const o=n.classList.toggle('open');b.setAttribute('aria-expanded',o)};n.querySelectorAll('a').forEach(a=>a.onclick=()=>n.classList.remove('open'));}
