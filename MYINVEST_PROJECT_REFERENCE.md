@@ -155,3 +155,12 @@ The site previously stopped publishing after a visibility change and was restore
 - Contact form
 - SEO metadata
 - Better mobile gallery
+
+## Request Details Inquiry Form
+- Any “Request details” action opens an on-site inquiry modal.
+- Collects name, contact number, email and a brief description.
+- Property detail inquiries include the listing title and URL.
+- Submissions are routed to `amirkgaran@gmail.com` through FormSubmit.
+- FormSubmit requires one-time email activation after the first test submission.
+- `inquiry.js` contains the shared inquiry behavior.
+- `thank-you.html` is the post-submission confirmation page.

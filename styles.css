@@ -180,3 +180,32 @@
   .detail-gallery-main{height:320px;min-height:0}
   .detail-gallery-thumbnails{grid-template-columns:repeat(3,minmax(0,1fr))}
 }
+
+
+/* Request details inquiry form */
+.request-details-link{border:0;background:none;color:var(--ink);font:inherit;padding:0;cursor:pointer;text-decoration:none}
+.request-details-link:hover{text-decoration:underline}
+.inquiry-modal{width:min(620px,calc(100% - 30px));max-height:calc(100vh - 30px);padding:0;border:0;background:transparent;color:var(--ink);overflow:visible}
+.inquiry-modal::backdrop{background:rgba(23,34,29,.68);backdrop-filter:blur(3px)}
+.inquiry-modal-card{position:relative;background:var(--white);border:1px solid var(--ink);padding:38px 40px;max-height:calc(100vh - 30px);overflow:auto}
+.inquiry-modal-card h2{font-family:"Playfair Display",Georgia,serif;font-size:clamp(2rem,5vw,3rem);font-weight:500;margin:0 0 12px}
+.inquiry-intro{color:var(--soft);line-height:1.65;margin:0 0 26px;max-width:520px}
+.inquiry-close{position:absolute;top:14px;right:16px;border:0;background:none;color:var(--ink);font-size:2rem;line-height:1;cursor:pointer;padding:5px 8px}
+.inquiry-form{display:grid;gap:17px}
+.inquiry-form label{display:grid;gap:7px;font-size:.9rem;font-weight:600}
+.inquiry-form input,.inquiry-form textarea{width:100%;font:inherit;padding:12px 13px;border:1px solid #a9aaa5;background:#fff;color:var(--ink)}
+.inquiry-form textarea{resize:vertical;min-height:115px}
+.inquiry-submit{width:100%;margin-top:3px}
+.inquiry-note{margin:0;color:var(--soft);font-size:.78rem;line-height:1.5;text-align:center}
+.inquiry-honey{position:absolute!important;left:-9999px!important;width:1px!important;height:1px!important;opacity:0!important;pointer-events:none!important}
+.detail-contact-info{display:grid;margin:22px 0;border-top:1px solid var(--line)}
+.detail-contact-info a{display:grid;gap:4px;padding:14px 0;border-bottom:1px solid var(--line);text-decoration:none}
+.detail-contact-info span{font-size:.7rem;text-transform:uppercase;letter-spacing:.12em;color:var(--accent)}
+.detail-contact-info strong{font-size:.92rem;word-break:break-word}
+.detail-contact-button{width:100%}
+.thank-you-main{min-height:calc(100vh - 173px);display:grid;place-items:center;padding:70px 0}
+.thank-you-card{width:min(700px,100%);border:1px solid var(--ink);background:var(--white);padding:clamp(34px,7vw,70px)}
+.thank-you-card h1{font-family:"Playfair Display",Georgia,serif;font-size:clamp(3rem,8vw,5.5rem);font-weight:500;margin:0 0 20px}
+.thank-you-card>p:not(.eyebrow){color:var(--soft);line-height:1.8;max-width:560px}
+.thank-you-actions{display:flex;align-items:center;gap:24px;flex-wrap:wrap;margin-top:30px}
+@media(max-width:600px){.inquiry-modal-card{padding:34px 22px 26px}.inquiry-close{top:10px;right:10px}.thank-you-actions{align-items:flex-start;flex-direction:column}}
