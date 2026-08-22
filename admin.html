@@ -3,9 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="description" content="Private listing management for myinvest.ca.">
+  <meta name="description" content="Private website and listing management for myinvest.ca.">
   <title>Admin | myinvest.ca</title>
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="site-content.css">
 </head>
 <body class="admin-body">
 <header class="site-header">
@@ -24,8 +25,8 @@
 <main class="shell admin-main">
   <section class="admin-title">
     <p class="eyebrow">Private administration</p>
-    <h1>Listing Manager</h1>
-    <p>Add, edit, publish and remove listings shown on myinvest.ca.</p>
+    <h1>Website Manager</h1>
+    <p>Edit website content and manage listings shown on myinvest.ca.</p>
   </section>
 
   <section id="setupWarning" class="notice warning hidden">
@@ -47,6 +48,32 @@
       <div><strong id="signedInAs"></strong><div class="small-muted">Authenticated administrator</div></div>
       <button id="logoutButton" class="button secondary">Sign out</button>
     </div>
+
+    <section class="admin-panel website-content-panel">
+      <div class="panel-heading">
+        <div>
+          <p class="eyebrow">Website content</p>
+          <h2>About page</h2>
+        </div>
+        <a class="text-button admin-preview-link" href="about.html" target="_blank" rel="noopener">Preview About</a>
+      </div>
+      <p class="small-muted website-content-help">Change the About page here. Saving updates the public website without editing GitHub files.</p>
+
+      <form id="siteContentForm" class="admin-form website-content-form">
+        <label>About heading
+          <input id="aboutHeadingAdmin" type="text" required maxlength="180" placeholder="Real estate guidance with an investment mindset.">
+        </label>
+
+        <label>About description
+          <textarea id="aboutDescriptionAdmin" rows="6" required maxlength="2000" placeholder="Write the About description shown on the public website."></textarea>
+        </label>
+
+        <div class="content-form-actions">
+          <button id="saveContentButton" class="button" type="submit">Save About page</button>
+          <p id="contentMessage" class="form-message"></p>
+        </div>
+      </form>
+    </section>
 
     <section class="admin-grid">
       <div class="admin-panel">

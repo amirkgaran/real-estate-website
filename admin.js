@@ -22,6 +22,12 @@
   const formTitle = document.getElementById("formTitle");
   const saveButton = document.getElementById("saveButton");
 
+  const siteContentForm = document.getElementById("siteContentForm");
+  const aboutHeadingAdmin = document.getElementById("aboutHeadingAdmin");
+  const aboutDescriptionAdmin = document.getElementById("aboutDescriptionAdmin");
+  const contentMessage = document.getElementById("contentMessage");
+  const saveContentButton = document.getElementById("saveContentButton");
+
   if (!configured) {
     setupWarning.classList.remove("hidden");
     loginPanel.classList.add("hidden");
@@ -112,6 +118,29 @@
     return data === true;
   }
 
+  async function loadSiteContent() {
+    if (!siteContentForm) return;
+    contentMessage.textContent = "Loading About content…";
+
+    const { data, error } = await client
+      .from("site_content")
+      .select("key,value")
+      .in("key", ["about_heading", "about_description"]);
+
+    if (error) {
+      console.error(error);
+      contentMessage.textContent = error.message.includes("site_content")
+        ? "Website content setup is required. Run the supplied Supabase site-content migration once."
+        : error.message;
+      return;
+    }
+
+    const content = Object.fromEntries((data || []).map(row => [row.key, row.value]));
+    aboutHeadingAdmin.value = content.about_heading || "Real estate guidance with an investment mindset.";
+    aboutDescriptionAdmin.value = content.about_description || "Amir Geran is a Broker with International Realty Firm, focused on helping clients evaluate opportunities with attention to value, income potential and long-term growth.";
+    contentMessage.textContent = "";
+  }
+
   async function showSession(session) {
     if (!session) {
       loginPanel.classList.remove("hidden");
@@ -137,7 +166,7 @@
     signedInAs.textContent = session.user.email || "Administrator";
     loginPanel.classList.add("hidden");
     dashboard.classList.remove("hidden");
-    await loadAdminListings();
+    await Promise.all([loadAdminListings(), loadSiteContent()]);
   }
 
   loginForm.addEventListener("submit", async (event) => {
@@ -161,11 +190,46 @@
   logoutButton.addEventListener("click", async () => {
     await client.auth.signOut();
     resetForm();
+    if (siteContentForm) siteContentForm.reset();
   });
 
   client.auth.onAuthStateChange((_event, session) => {
     showSession(session);
   });
+
+  if (siteContentForm) {
+    siteContentForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const heading = aboutHeadingAdmin.value.trim();
+      const description = aboutDescriptionAdmin.value.trim();
+
+      if (!heading || !description) {
+        contentMessage.textContent = "Both About fields are required.";
+        return;
+      }
+
+      contentMessage.textContent = "Saving…";
+      saveContentButton.disabled = true;
+
+      const now = new Date().toISOString();
+      const { error } = await client.from("site_content").upsert([
+        { key: "about_heading", value: heading, updated_at: now },
+        { key: "about_description", value: description, updated_at: now }
+      ], { onConflict: "key" });
+
+      saveContentButton.disabled = false;
+
+      if (error) {
+        console.error(error);
+        contentMessage.textContent = error.message.includes("site_content")
+          ? "Unable to save. Run the supplied Supabase site-content migration first."
+          : error.message;
+        return;
+      }
+
+      contentMessage.textContent = "About page saved. Open Preview About to see the update.";
+    });
+  }
 
   async function loadAdminListings() {
     adminListingStatus.textContent = "Loading listings…";

@@ -1,0 +1,129 @@
+/* Contact inquiry form */
+.contact-layout{
+  display:grid;
+  grid-template-columns:minmax(280px,.72fr) minmax(0,1.28fr);
+  gap:42px;
+  align-items:start;
+  padding:60px 0 110px;
+}
+.contact-details-card{
+  margin:0;
+  max-width:none;
+}
+.contact-details-card h2,
+.contact-inquiry-card h2{
+  font-family:"Playfair Display",Georgia,serif;
+  font-size:clamp(2rem,4vw,3rem);
+  font-weight:500;
+  margin:0 0 12px;
+}
+.contact-inquiry-card{
+  border:1px solid var(--ink);
+  background:var(--white);
+  padding:36px;
+  scroll-margin-top:105px;
+}
+.contact-form-intro{
+  color:var(--soft);
+  line-height:1.7;
+  margin:0 0 26px;
+}
+.contact-inquiry-form{
+  display:grid;
+  gap:18px;
+}
+.contact-inquiry-form label{
+  display:grid;
+  gap:7px;
+  font-size:.9rem;
+  font-weight:600;
+}
+.contact-inquiry-form input,
+.contact-inquiry-form textarea{
+  width:100%;
+  padding:13px 14px;
+  border:1px solid #a9aaa5;
+  background:#fff;
+  font:inherit;
+  color:var(--ink);
+}
+.contact-inquiry-form textarea{resize:vertical}
+.contact-submit-button{width:max-content}
+.contact-privacy-note{
+  margin:0;
+  color:var(--soft);
+  font-size:.8rem;
+}
+.form-honey{
+  position:absolute!important;
+  left:-9999px!important;
+  width:1px!important;
+  height:1px!important;
+  opacity:0!important;
+  pointer-events:none!important;
+}
+
+/* Admin editable site content */
+.website-content-panel{
+  margin-bottom:28px;
+}
+.website-content-panel .panel-heading h2{
+  margin-bottom:0;
+}
+.website-content-help{
+  margin:-6px 0 22px;
+  line-height:1.6;
+}
+.website-content-form{
+  max-width:850px;
+}
+.content-form-actions{
+  display:flex;
+  align-items:center;
+  gap:18px;
+  flex-wrap:wrap;
+}
+.content-form-actions .form-message{
+  flex:1;
+}
+.admin-preview-link{
+  white-space:nowrap;
+}
+
+/* Thank-you page */
+.thank-you-main{
+  min-height:calc(100vh - 173px);
+  display:grid;
+  align-items:center;
+  padding:70px 0;
+}
+.thank-you-card{
+  max-width:760px;
+  padding:50px;
+  border:1px solid var(--ink);
+  background:var(--white);
+}
+.thank-you-card h1{
+  font-family:"Playfair Display",Georgia,serif;
+  font-size:clamp(2.8rem,6vw,5rem);
+  line-height:1;
+  font-weight:500;
+  margin:0 0 22px;
+}
+.thank-you-card p{
+  color:var(--soft);
+  line-height:1.7;
+}
+.thank-you-card .button{
+  display:inline-block;
+  margin-top:14px;
+  text-decoration:none;
+}
+
+@media(max-width:900px){
+  .contact-layout{grid-template-columns:1fr;gap:25px}
+}
+@media(max-width:600px){
+  .contact-inquiry-card{padding:26px 22px}
+  .thank-you-card{padding:36px 26px}
+}
