@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Property listing details on myinvest.ca.">
+  <title>Property Listing | Amir Geran</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="site-header">
+  <div class="shell nav-wrap">
+    <a class="brand" href="index.html">AG</a>
+    <button class="menu-toggle" id="menuToggle" aria-label="Open navigation" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+    <nav class="nav-links" id="navLinks">
+      <a href="index.html">Home</a>
+      <a href="about.html">About</a>
+      <a href="contact.html">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<main class="listing-detail-main">
+  <div class="shell">
+    <div id="listingDetailStatus" class="status-message listing-detail-status">Loading listing…</div>
+    <article id="listingDetail" class="listing-detail hidden">
+      <a id="listingBackLink" class="back listing-detail-back" href="residential.html">← Back to listings</a>
+
+      <header class="listing-detail-header">
+        <div>
+          <p id="listingDetailType" class="eyebrow"></p>
+          <h1 id="listingDetailTitle"></h1>
+          <p id="listingDetailLocation" class="listing-detail-location"></p>
+        </div>
+        <div id="listingDetailPrice" class="listing-detail-price"></div>
+      </header>
+
+      <section id="listingDetailGallery" class="listing-detail-gallery" aria-label="Property photos"></section>
+
+      <div class="listing-detail-layout">
+        <section class="listing-detail-copy">
+          <p class="eyebrow">Property details</p>
+          <h2>About this property</h2>
+          <p id="listingDetailDescription" class="listing-detail-description"></p>
+
+          <div id="listingHighlightsSection" class="listing-detail-highlights hidden">
+            <p class="eyebrow">Highlights</p>
+            <h2>Investment highlights</h2>
+            <p id="listingDetailHighlights"></p>
+          </div>
+        </section>
+
+        <aside class="listing-detail-contact">
+          <p class="eyebrow">Interested?</p>
+          <h2>Request more information</h2>
+          <p>Contact Amir for additional information, availability, or to discuss this opportunity.</p>
+          <a class="button detail-contact-button" href="contact.html">Contact Amir</a>
+        </aside>
+      </div>
+    </article>
+  </div>
+</main>
+
+<footer>
+  <div class="shell footer-inner">
+    <span>© 2026 Amir Geran</span>
+    <span>Broker · International Realty Firm</span>
+  </div>
+</footer>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="script.js"></script>
+<script src="listing-detail.js"></script>
+</body>
+</html>

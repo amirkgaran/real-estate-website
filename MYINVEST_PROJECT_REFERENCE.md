@@ -63,6 +63,8 @@ Keep this override at the bottom of `styles.css` if earlier rules conflict:
 - `styles.css`
 - `script.js`
 - `listings.js`
+- `listing-detail.html`
+- `listing-detail.js`
 - `admin.js`
 - `config.js`
 - `CNAME`
@@ -103,6 +105,12 @@ The site uses:
 
 Only the Supabase publishable/anon key belongs in browser code. Never place a secret/service-role key in GitHub.
 
+## Residential Listing Browse Flow
+- Residential first asks the visitor to choose **For Sale** or **For Lease**.
+- Results are shown as compact listing rows with a thumbnail, price/location, and short description.
+- Selecting a listing opens `listing-detail.html?id=<listing UUID>`.
+- The detail page shows the full photo gallery, complete description, investment highlights, price/location, and contact CTA.
+
 ## Multiple Photo Gallery
 The public listing pages were updated so a listing can display:
 - one large main image
@@ -111,6 +119,8 @@ The public listing pages were updated so a listing can display:
 
 The related changes are in:
 - `listings.js`
+- `listing-detail.html`
+- `listing-detail.js`
 - gallery CSS appended to `styles.css`
 
 ## GitHub Pages

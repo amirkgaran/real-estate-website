@@ -11,11 +11,18 @@
   const selectionTitle = document.getElementById("residentialSelectionTitle");
   const listingHeadingTitle = document.getElementById("listingHeadingTitle");
   const typeButtons = document.querySelectorAll("[data-listing-type]");
-  let selectedListingType = null;
 
   const esc = (v = "") => String(v).replace(/[&<>"']/g, c => ({
     "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
   }[c]));
+
+  function shortDescription(value = "", limit = 155) {
+    const clean = String(value).replace(/\s+/g, " ").trim();
+    if (clean.length <= limit) return clean;
+    const clipped = clean.slice(0, limit);
+    const lastSpace = clipped.lastIndexOf(" ");
+    return `${clipped.slice(0, lastSpace > 90 ? lastSpace : limit).trim()}…`;
+  }
 
   function gallery(item) {
     const images = Array.isArray(item.images) ? item.images.filter(Boolean) : [];
@@ -38,7 +45,30 @@
       </div>`;
   }
 
-  function card(item) {
+  function residentialListCard(item) {
+    const images = Array.isArray(item.images) ? item.images.filter(Boolean) : [];
+    const image = images.length
+      ? `<img src="${esc(images[0])}" alt="${esc(item.title)}">`
+      : `<div class="listing-list-placeholder">Photo coming soon</div>`;
+
+    const detailUrl = `listing-detail.html?id=${encodeURIComponent(item.id)}`;
+    return `
+      <a class="listing-list-card" href="${detailUrl}" aria-label="View ${esc(item.title)}">
+        <div class="listing-list-image">${image}</div>
+        <div class="listing-list-copy">
+          <div class="listing-list-topline">
+            <span class="type">For ${esc(item.listing_type || "Sale")}</span>
+            ${item.price ? `<strong class="listing-list-price">${esc(item.price)}</strong>` : ""}
+          </div>
+          <h3>${esc(item.title)}</h3>
+          ${item.location ? `<p class="listing-list-location">${esc(item.location)}</p>` : ""}
+          <p class="listing-list-description">${esc(shortDescription(item.description))}</p>
+          <span class="listing-list-link">View full listing →</span>
+        </div>
+      </a>`;
+  }
+
+  function fullCard(item) {
     const typeLabel = item.listing_type ? ` · For ${esc(item.listing_type)}` : "";
     return `
       <article class="public-listing-card">
@@ -98,14 +128,14 @@
     }
 
     status.textContent = "";
-    grid.innerHTML = data.map(card).join("");
-    wireGalleries();
+    grid.classList.toggle("compact-listing-grid", isResidential);
+    grid.innerHTML = data.map(isResidential ? residentialListCard : fullCard).join("");
+    if (!isResidential) wireGalleries();
   }
 
   function selectResidentialType(type, { scroll = true } = {}) {
     if (!isResidential || !["Sale", "Lease"].includes(type)) return;
 
-    selectedListingType = type;
     residentialListings?.classList.remove("hidden");
     typeButtons.forEach(button => {
       const active = button.dataset.listingType === type;

@@ -120,3 +120,63 @@
     font-size: clamp(2.35rem, 12vw, 3.25rem);
   }
 }
+
+/* Residential browse list */
+.compact-listing-grid{gap:16px}
+.listing-list-card{display:grid;grid-template-columns:210px minmax(0,1fr);min-height:175px;border:1px solid var(--line);background:var(--white);text-decoration:none;overflow:hidden;transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease}
+.listing-list-card:hover{transform:translateY(-2px);border-color:var(--ink);box-shadow:0 12px 28px rgba(23,34,29,.08)}
+.listing-list-image{background:#d9d2c4;min-height:175px;overflow:hidden}
+.listing-list-image img{width:100%;height:100%;min-height:175px;object-fit:cover;display:block}
+.listing-list-placeholder{height:100%;min-height:175px;display:grid;place-items:center;text-transform:uppercase;letter-spacing:.1em;font-size:.68rem;color:#6c675e;padding:15px;text-align:center}
+.listing-list-copy{padding:22px 24px;display:flex;flex-direction:column;justify-content:center;min-width:0}
+.listing-list-topline{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:5px}
+.listing-list-topline .type{font-size:.75rem;text-transform:uppercase;letter-spacing:.12em}
+.listing-list-price{font-size:1rem;white-space:nowrap}
+.listing-list-card h3{font-family:"Playfair Display",Georgia,serif;font-size:1.65rem;font-weight:500;margin:4px 0 4px}
+.listing-list-location{margin:0 0 10px;color:var(--soft);font-size:.9rem}
+.listing-list-description{margin:0;color:var(--soft);line-height:1.55;font-size:.92rem}
+.listing-list-link{margin-top:13px;font-weight:600;font-size:.88rem}
+
+/* Full listing detail page */
+.listing-detail-main{padding:60px 0 110px}
+.listing-detail-status{min-height:120px}
+.listing-detail-back{margin-bottom:35px}
+.listing-detail-header{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:40px;align-items:end;margin-bottom:34px}
+.listing-detail-header h1{font-family:"Playfair Display",Georgia,serif;font-size:clamp(2.8rem,6vw,5.4rem);font-weight:500;line-height:1.02;margin:0;max-width:900px}
+.listing-detail-location{margin:16px 0 0;color:var(--soft);font-size:1.08rem}
+.listing-detail-price{font-family:"Playfair Display",Georgia,serif;font-size:clamp(1.8rem,3vw,2.8rem);white-space:nowrap;padding-bottom:5px}
+.listing-detail-gallery{margin-bottom:50px;background:#d9d2c4;border:1px solid var(--line)}
+.detail-gallery-main{width:100%;height:min(62vw,650px);min-height:420px;display:grid;place-items:center;overflow:hidden}
+.detail-gallery-main img{width:100%;height:100%;object-fit:cover;display:block}
+.detail-gallery-thumbnails{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;padding:10px;background:var(--white);border-top:1px solid var(--line)}
+.detail-gallery-thumb{padding:0;border:2px solid transparent;background:none;cursor:pointer;overflow:hidden;aspect-ratio:4/3}
+.detail-gallery-thumb.active{border-color:var(--ink)}
+.detail-gallery-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.listing-detail-layout{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(280px,.65fr);gap:60px;align-items:start}
+.listing-detail-copy h2,.listing-detail-contact h2{font-family:"Playfair Display",Georgia,serif;font-size:2.35rem;font-weight:500;margin:0 0 18px}
+.listing-detail-description,.listing-detail-highlights p,.listing-detail-contact p{color:var(--soft);line-height:1.85;white-space:pre-line}
+.listing-detail-highlights{border-top:1px solid var(--line);margin-top:42px;padding-top:36px}
+.listing-detail-contact{border:1px solid var(--ink);background:var(--white);padding:30px;position:sticky;top:115px}
+.detail-contact-button{display:inline-block;text-decoration:none;margin-top:10px}
+
+@media(max-width:800px){
+  .listing-list-card{grid-template-columns:145px minmax(0,1fr)}
+  .listing-list-image,.listing-list-image img,.listing-list-placeholder{min-height:160px}
+  .listing-list-copy{padding:18px}
+  .listing-list-card h3{font-size:1.4rem}
+  .listing-detail-header,.listing-detail-layout{grid-template-columns:1fr}
+  .listing-detail-header{gap:16px}
+  .listing-detail-price{white-space:normal}
+  .listing-detail-contact{position:static}
+  .detail-gallery-thumbnails{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
+
+@media(max-width:560px){
+  .listing-list-card{grid-template-columns:1fr}
+  .listing-list-image{height:205px}
+  .listing-list-image img{height:205px;min-height:0}
+  .listing-list-placeholder{height:205px;min-height:0}
+  .listing-list-topline{align-items:flex-start}
+  .detail-gallery-main{height:320px;min-height:0}
+  .detail-gallery-thumbnails{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
