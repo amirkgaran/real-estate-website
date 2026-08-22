@@ -78,3 +78,45 @@
 .listing-type-toggle button:last-child{border-right:0}
 .listing-type-toggle button:hover,.listing-type-toggle button.active{background:var(--ink);color:var(--paper)}
 @media(max-width:700px){.residential-choice-grid{grid-template-columns:1fr}.residential-choice-card{min-height:170px;padding:24px 22px}.residential-choice{padding-top:50px}}
+
+/* Homepage spacing and name-width refinement */
+.profile-card h1 {
+  white-space: nowrap;
+}
+
+@media (min-width: 1151px) {
+  .hero.shell {
+    width: min(1280px, calc(100% - 64px));
+  }
+
+  .hero {
+    grid-template-columns: minmax(500px, 0.95fr) minmax(0, 1.05fr);
+    gap: 110px;
+  }
+
+  .profile-card h1 {
+    font-size: clamp(2.8rem, 4.5vw, 4.1rem);
+  }
+}
+
+@media (min-width: 901px) and (max-width: 1150px) {
+  .hero {
+    grid-template-columns: 0.95fr 1.05fr;
+    gap: 60px;
+  }
+
+  .profile-card {
+    padding-left: 28px;
+    padding-right: 28px;
+  }
+
+  .profile-card h1 {
+    font-size: clamp(2.5rem, 4vw, 3.5rem);
+  }
+}
+
+@media (max-width: 600px) {
+  .profile-card h1 {
+    font-size: clamp(2.35rem, 12vw, 3.25rem);
+  }
+}
