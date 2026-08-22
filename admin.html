@@ -7,6 +7,7 @@
   <title>Admin | myinvest.ca</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="site-content.css">
+  <link rel="stylesheet" href="webinars.css">
 </head>
 <body class="admin-body">
 <header class="site-header">
@@ -73,6 +74,66 @@
           <p id="contentMessage" class="form-message"></p>
         </div>
       </form>
+    </section>
+
+    <section class="admin-panel webinar-admin-panel">
+      <div class="panel-heading">
+        <div>
+          <p class="eyebrow">Events</p>
+          <h2>Webinars</h2>
+        </div>
+        <a class="text-button admin-preview-link" href="webinars.html" target="_blank" rel="noopener">Preview Webinars</a>
+      </div>
+      <p class="small-muted website-content-help">Create upcoming webinars, review registrations, add the private meeting link when it is ready, and email that link to registered attendees.</p>
+
+      <div class="webinar-admin-grid">
+        <form id="webinarForm" class="admin-form webinar-admin-form">
+          <input id="webinarId" type="hidden">
+
+          <label>Webinar title
+            <input id="webinarTitle" type="text" required maxlength="160" placeholder="Example: Investing in the Greater Toronto Real Estate Market">
+          </label>
+
+          <div class="form-two">
+            <label>Date
+              <input id="webinarDate" type="date" required>
+            </label>
+            <label>Time
+              <input id="webinarTime" type="time" required>
+              <span class="field-help">Displayed as Eastern Time (Toronto).</span>
+            </label>
+          </div>
+
+          <label>Short description
+            <textarea id="webinarDescription" rows="4" required maxlength="1200" placeholder="What attendees will learn and who the webinar is for."></textarea>
+          </label>
+
+          <label>Webinar meeting link
+            <input id="webinarMeetingUrl" type="url" placeholder="https://zoom.us/... or https://meet.google.com/...">
+            <span class="field-help">You can leave this blank initially. Registrants will be told the access link will be emailed later.</span>
+          </label>
+
+          <label class="checkbox-row">
+            <input id="webinarPublished" type="checkbox" checked>
+            <span>Show this webinar publicly</span>
+          </label>
+
+          <div class="webinar-form-actions">
+            <button id="saveWebinarButton" class="button" type="submit">Save webinar</button>
+            <button id="cancelWebinarEdit" class="button secondary hidden" type="button">Cancel edit</button>
+          </div>
+          <p id="webinarFormMessage" class="form-message"></p>
+        </form>
+
+        <div>
+          <div class="panel-heading webinar-list-heading">
+            <h3>Scheduled webinars</h3>
+            <button id="refreshWebinarsButton" class="text-button" type="button">Refresh</button>
+          </div>
+          <div id="adminWebinarStatus" class="status-message">Loading…</div>
+          <div id="adminWebinars" class="admin-webinars"></div>
+        </div>
+      </div>
     </section>
 
     <section class="admin-grid">
@@ -159,5 +220,6 @@
 <script src="config.js"></script>
 <script src="script.js"></script>
 <script src="admin.js"></script>
+<script src="admin-webinars.js"></script>
 </body>
 </html>

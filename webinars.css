@@ -1,0 +1,68 @@
+/* Webinars public page + admin manager */
+.webinar-page-hero{padding-bottom:54px}
+.webinar-public-section{padding:64px 0 110px}
+.webinar-section-heading{display:grid;grid-template-columns:1fr minmax(280px,460px);gap:50px;align-items:end;margin-bottom:32px}
+.webinar-section-heading h2{font-family:"Playfair Display",Georgia,serif;font-size:clamp(2.4rem,4vw,3.8rem);font-weight:500;margin:0}
+.webinar-section-heading>p{margin:0;color:var(--soft);line-height:1.75}
+.webinar-list{display:grid;gap:18px}
+.webinar-card{display:grid;grid-template-columns:170px minmax(0,1fr) auto;gap:30px;align-items:center;border:1px solid var(--ink);background:var(--white);padding:28px 30px}
+.webinar-date-block{border-right:1px solid var(--line);padding-right:28px}
+.webinar-day{display:block;text-transform:uppercase;letter-spacing:.16em;font-size:.7rem;color:var(--accent);font-weight:600;margin-bottom:6px}
+.webinar-date{display:block;font-family:"Playfair Display",Georgia,serif;font-size:1.7rem;line-height:1.15}
+.webinar-time{display:block;color:var(--soft);margin-top:10px;font-size:.9rem}
+.webinar-copy{min-width:0}
+.webinar-copy h3{font-family:"Playfair Display",Georgia,serif;font-size:clamp(1.55rem,2.8vw,2.35rem);font-weight:500;margin:0 0 10px}
+.webinar-copy p{margin:0;color:var(--soft);line-height:1.7}
+.webinar-register-button{white-space:nowrap}
+
+.webinar-registration-modal{border:0;padding:0;background:transparent;width:min(680px,calc(100% - 30px));max-width:none}
+.webinar-registration-modal::backdrop{background:rgba(15,22,18,.66)}
+.webinar-registration-card{position:relative;background:var(--paper);border:1px solid var(--ink);padding:38px}
+.webinar-registration-card h2{font-family:"Playfair Display",Georgia,serif;font-size:clamp(2rem,4vw,3rem);font-weight:500;margin:0 0 12px}
+.webinar-modal-close{position:absolute;top:14px;right:16px;border:0;background:none;font:inherit;font-size:2rem;line-height:1;cursor:pointer;color:var(--ink)}
+.webinar-selected-summary{color:var(--soft);line-height:1.65;margin:0 0 24px;padding-bottom:20px;border-bottom:1px solid var(--line)}
+.webinar-registration-form{display:grid;gap:16px}
+.webinar-registration-form label{display:grid;gap:7px;font-size:.9rem;font-weight:600}
+.webinar-registration-form input{font:inherit;padding:12px 13px;border:1px solid #a9aaa5;background:#fff;width:100%;font-size:16px}
+.webinar-honeypot{position:absolute!important;left:-10000px!important;width:1px!important;height:1px!important;overflow:hidden!important}
+.webinar-privacy-note{font-size:.78rem;color:var(--soft);line-height:1.5;margin:0}
+.webinar-registration-success{padding:18px;border:1px solid #4d765d;background:#edf5ef;color:#294936;line-height:1.6}
+
+.webinar-admin-panel{margin-bottom:28px}
+.webinar-admin-grid{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:32px;margin-top:24px}
+.webinar-form-actions{display:flex;gap:10px;flex-wrap:wrap}
+.webinar-list-heading{margin-bottom:8px}
+.webinar-list-heading h3{font-family:"Playfair Display",Georgia,serif;font-size:1.55rem;font-weight:500;margin:0}
+.admin-webinars{display:grid;gap:12px}
+.admin-webinar-card{border:1px solid var(--line);padding:16px;background:#fff}
+.admin-webinar-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.admin-webinar-top h4{margin:3px 0 6px;font-size:1rem}
+.admin-webinar-meta{font-size:.82rem;color:var(--soft);line-height:1.5}
+.admin-webinar-badges{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px}
+.admin-webinar-badges span{font-size:.67rem;padding:3px 6px;border:1px solid var(--line)}
+.admin-webinar-badges .published{background:#e7f4ea}
+.admin-webinar-badges .draft{background:#eee}
+.admin-webinar-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:13px;align-items:center}
+.admin-webinar-actions .button{padding:8px 11px;font-size:.78rem}
+.admin-webinar-actions .text-button{font-size:.82rem}
+.admin-webinar-registrants{margin-top:13px;border-top:1px solid var(--line);padding-top:12px}
+.admin-webinar-registrants summary{cursor:pointer;font-weight:600;font-size:.84rem}
+.registrant-list{display:grid;gap:7px;margin-top:10px}
+.registrant-row{display:grid;grid-template-columns:1fr auto;gap:10px;font-size:.78rem;padding:7px 0;border-bottom:1px solid var(--line)}
+.registrant-row:last-child{border-bottom:0}
+.registrant-contact{color:var(--soft);overflow-wrap:anywhere}
+.link-ready{color:#356746;font-weight:600}
+.link-missing{color:#8b642d}
+
+@media(max-width:900px){
+  .webinar-section-heading,.webinar-admin-grid{grid-template-columns:1fr}
+  .webinar-card{grid-template-columns:140px minmax(0,1fr)}
+  .webinar-card .webinar-register-button{grid-column:1/-1;width:100%}
+}
+@media(max-width:600px){
+  .webinar-public-section{padding-top:45px}
+  .webinar-card{grid-template-columns:1fr;padding:22px}
+  .webinar-date-block{border-right:0;border-bottom:1px solid var(--line);padding:0 0 16px}
+  .webinar-registration-card{padding:32px 22px 24px}
+  .registrant-row{grid-template-columns:1fr}
+}
