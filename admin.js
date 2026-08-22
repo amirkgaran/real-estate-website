@@ -33,6 +33,8 @@
   const els = {
     id: document.getElementById("listingId"),
     category: document.getElementById("category"),
+    listingType: document.getElementById("listingType"),
+    listingTypeField: document.getElementById("listingTypeField"),
     title: document.getElementById("title"),
     price: document.getElementById("price"),
     location: document.getElementById("location"),
@@ -44,6 +46,13 @@
 
   let currentListings = [];
 
+  function syncListingTypeField() {
+    const residential = els.category.value === "Residential";
+    els.listingTypeField.classList.toggle("hidden", !residential);
+    els.listingType.required = residential;
+    if (!residential) els.listingType.value = "Sale";
+  }
+
   const escapeHtml = (value = "") =>
     String(value).replace(/[&<>"']/g, (ch) => ({
       "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
@@ -53,6 +62,8 @@
     listingForm.reset();
     els.id.value = "";
     els.category.value = "Residential";
+    els.listingType.value = "Sale";
+    syncListingTypeField();
     els.published.checked = true;
     formTitle.textContent = "Add listing";
     saveButton.textContent = "Publish listing";
@@ -63,6 +74,8 @@
   function setEditing(item) {
     els.id.value = item.id;
     els.category.value = item.category;
+    els.listingType.value = item.listing_type || "Sale";
+    syncListingTypeField();
     els.title.value = item.title || "";
     els.price.value = item.price || "";
     els.location.value = item.location || "";
@@ -185,6 +198,7 @@
           <div class="admin-listing-copy">
             <div class="admin-badges">
               <span>${escapeHtml(item.category)}</span>
+              ${item.category === "Residential" && item.listing_type ? `<span>For ${escapeHtml(item.listing_type)}</span>` : ""}
               <span class="${item.published ? "published" : "draft"}">${item.published ? "Published" : "Draft"}</span>
             </div>
             <h3>${escapeHtml(item.title)}</h3>
@@ -254,6 +268,7 @@
       const payload = {
         id,
         category: els.category.value,
+        listing_type: els.category.value === "Residential" ? els.listingType.value : null,
         title: els.title.value.trim(),
         price: els.price.value.trim(),
         location: els.location.value.trim(),
@@ -279,6 +294,9 @@
       saveButton.disabled = false;
     }
   });
+
+  els.category.addEventListener("change", syncListingTypeField);
+  syncListingTypeField();
 
   refreshButton.addEventListener("click", loadAdminListings);
   cancelEditButton.addEventListener("click", resetForm);

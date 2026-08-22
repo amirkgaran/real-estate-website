@@ -56,3 +56,25 @@
   }
 }
 
+
+
+/* Residential sale / lease selection */
+.residential-choice{padding:70px 0 30px}
+.residential-choice-heading{margin-bottom:28px}
+.residential-choice-heading h2{font-family:"Playfair Display",Georgia,serif;font-size:clamp(2.25rem,4vw,3.6rem);font-weight:500;margin:0}
+.residential-choice-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px}
+.residential-choice-card{min-height:210px;padding:28px 30px;border:1px solid var(--ink);background:var(--white);color:var(--ink);font:inherit;text-align:left;cursor:pointer;display:grid;grid-template-columns:auto 1fr auto;gap:24px;align-items:center;transition:transform .18s ease,background .18s ease,color .18s ease}
+.residential-choice-card:hover,.residential-choice-card.active{background:var(--ink);color:var(--paper);transform:translateY(-3px)}
+.residential-choice-card .choice-number{align-self:start;color:var(--accent);font-size:.75rem;letter-spacing:.12em}
+.residential-choice-card .choice-copy{display:grid;gap:12px}
+.residential-choice-card .choice-copy strong{font-family:"Playfair Display",Georgia,serif;font-size:clamp(2rem,3vw,3rem);font-weight:500}
+.residential-choice-card .choice-copy small{font-size:.95rem;line-height:1.6;max-width:330px;color:var(--soft)}
+.residential-choice-card:hover .choice-copy small,.residential-choice-card.active .choice-copy small{color:rgba(244,240,231,.72)}
+.residential-choice-card .choice-arrow{font-size:1.8rem}
+.residential-listings{padding-top:55px;scroll-margin-top:84px}
+.residential-filter-panel .selection-note{color:var(--soft);line-height:1.6}
+.listing-type-toggle{display:grid;grid-template-columns:1fr 1fr;margin-top:24px;border:1px solid var(--ink)}
+.listing-type-toggle button{border:0;border-right:1px solid var(--ink);padding:12px 10px;background:transparent;color:var(--ink);font:inherit;font-weight:600;cursor:pointer}
+.listing-type-toggle button:last-child{border-right:0}
+.listing-type-toggle button:hover,.listing-type-toggle button.active{background:var(--ink);color:var(--paper)}
+@media(max-width:700px){.residential-choice-grid{grid-template-columns:1fr}.residential-choice-card{min-height:170px;padding:24px 22px}.residential-choice{padding-top:50px}}

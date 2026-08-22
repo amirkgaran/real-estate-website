@@ -94,6 +94,7 @@ Sign in with the Supabase admin user you created.
 From there you can:
 
 - choose Residential / Multi Residential / Commercial / Financial Market
+- choose For Sale / For Lease when the category is Residential
 - enter title
 - enter price
 - enter location
@@ -104,8 +105,12 @@ From there you can:
 - edit listings
 - delete listings
 
-Published listings automatically appear on the matching public category page.
+Published listings automatically appear on the matching public category page. Residential visitors first choose For Sale or For Lease and then see only matching listings.
 
 ## Security
 
 The admin interface is public as a web page, but access to listing changes is protected by Supabase Authentication and Row Level Security. A visitor cannot create, edit or delete listings unless their authenticated user UUID is in `site_admins`.
+
+## Existing database: Residential Sale / Lease migration
+
+If the Supabase project was created before the Residential Sale / Lease feature, run `supabase-residential-sale-lease-migration.sql` once in **Supabase → SQL Editor**. Existing Residential listings are assigned to **For Sale** so they remain visible; edit any lease listings in `admin.html` afterward.

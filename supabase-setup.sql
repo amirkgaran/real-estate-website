@@ -6,6 +6,7 @@ create extension if not exists pgcrypto;
 create table if not exists public.listings (
   id uuid primary key default gen_random_uuid(),
   category text not null check (category in ('Residential','Multi Residential','Commercial','Financial Market')),
+  listing_type text check (listing_type in ('Sale','Lease') or listing_type is null),
   title text not null,
   price text,
   location text,
@@ -16,6 +17,23 @@ create table if not exists public.listings (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+-- Safe migration for sites that already have the listings table.
+alter table public.listings add column if not exists listing_type text;
+update public.listings
+set listing_type = 'Sale'
+where category = 'Residential' and listing_type is null;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint where conname = 'listings_listing_type_check'
+  ) then
+    alter table public.listings
+      add constraint listings_listing_type_check
+      check (listing_type in ('Sale','Lease') or listing_type is null);
+  end if;
+end $$;
 
 create table if not exists public.site_admins (
   user_id uuid primary key references auth.users(id) on delete cascade,

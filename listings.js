@@ -6,6 +6,12 @@
   if (!category || !grid || !status) return;
 
   const client = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey);
+  const isResidential = category === "Residential";
+  const residentialListings = document.getElementById("residentialListings");
+  const selectionTitle = document.getElementById("residentialSelectionTitle");
+  const listingHeadingTitle = document.getElementById("listingHeadingTitle");
+  const typeButtons = document.querySelectorAll("[data-listing-type]");
+  let selectedListingType = null;
 
   const esc = (v = "") => String(v).replace(/[&<>"']/g, c => ({
     "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
@@ -33,11 +39,12 @@
   }
 
   function card(item) {
+    const typeLabel = item.listing_type ? ` · For ${esc(item.listing_type)}` : "";
     return `
       <article class="public-listing-card">
         ${gallery(item)}
         <div class="public-listing-content">
-          <p class="type">${esc(item.category)}</p>
+          <p class="type">${esc(item.category)}${typeLabel}</p>
           <h3>${esc(item.title)}</h3>
           <div class="listing-meta">
             ${item.price ? `<div class="listing-price">${esc(item.price)}</div>` : ""}
@@ -64,22 +71,73 @@
     });
   }
 
-  async function loadListings() {
+  async function loadListings(listingType = null) {
     status.textContent = "Loading listings…";
-    const { data, error } = await client.from("listings").select("*")
-      .eq("category", category).eq("published", true)
-      .order("created_at", { ascending:false });
+    grid.innerHTML = "";
 
-    if (error) { status.textContent = "Listings could not be loaded right now."; return; }
-    if (!data || !data.length) {
-      status.textContent = "No active listings in this category right now. Please contact Amir for current opportunities.";
-      grid.innerHTML = "";
+    let query = client.from("listings").select("*")
+      .eq("category", category)
+      .eq("published", true);
+
+    if (isResidential && listingType) {
+      query = query.eq("listing_type", listingType);
+    }
+
+    const { data, error } = await query.order("created_at", { ascending:false });
+
+    if (error) {
+      console.error(error);
+      status.textContent = "Listings could not be loaded right now.";
       return;
     }
+
+    if (!data || !data.length) {
+      const label = isResidential && listingType ? `for ${listingType.toLowerCase()}` : "in this category";
+      status.textContent = `No active listings ${label} right now. Please contact Amir for current opportunities.`;
+      return;
+    }
+
     status.textContent = "";
     grid.innerHTML = data.map(card).join("");
     wireGalleries();
   }
 
-  loadListings();
+  function selectResidentialType(type, { scroll = true } = {}) {
+    if (!isResidential || !["Sale", "Lease"].includes(type)) return;
+
+    selectedListingType = type;
+    residentialListings?.classList.remove("hidden");
+    typeButtons.forEach(button => {
+      const active = button.dataset.listingType === type;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-pressed", active ? "true" : "false");
+    });
+
+    const heading = type === "Sale" ? "Homes for Sale" : "Homes for Lease";
+    if (selectionTitle) selectionTitle.textContent = heading;
+    if (listingHeadingTitle) listingHeadingTitle.textContent = heading;
+
+    const url = new URL(window.location.href);
+    url.searchParams.set("type", type.toLowerCase());
+    history.replaceState(null, "", url);
+
+    loadListings(type);
+    if (scroll && residentialListings) {
+      residentialListings.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }
+
+  if (isResidential) {
+    typeButtons.forEach(button => {
+      button.addEventListener("click", () => selectResidentialType(button.dataset.listingType));
+    });
+
+    const requestedType = new URLSearchParams(window.location.search).get("type");
+    if (requestedType) {
+      const normalized = requestedType.toLowerCase() === "lease" ? "Lease" : requestedType.toLowerCase() === "sale" ? "Sale" : null;
+      if (normalized) selectResidentialType(normalized, { scroll: false });
+    }
+  } else {
+    loadListings();
+  }
 })();
