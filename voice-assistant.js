@@ -19,6 +19,9 @@
 
   let recognition = null;
   let listening = false;
+  let sessionActive = false;
+  let suspendAutoRestart = false;
+  let restartTimer = null;
   let currentFlow = null;
   let readQueue = [];
   let readIndex = 0;
@@ -120,6 +123,58 @@
     return file || "index.html";
   }
 
+  function saveSessionState(active) {
+    try {
+      if (active) sessionStorage.setItem("myinvestVoiceSession", "1");
+      else sessionStorage.removeItem("myinvestVoiceSession");
+    } catch (_) {}
+  }
+
+  function scheduleListening(delay = 300) {
+    clearTimeout(restartTimer);
+    if (!sessionActive || suspendAutoRestart || reading) return;
+    restartTimer = setTimeout(() => {
+      if (sessionActive && !suspendAutoRestart && !listening && !reading) {
+        startListening();
+      }
+    }, delay);
+  }
+
+  function startVoiceSession() {
+    sessionActive = true;
+    suspendAutoRestart = false;
+    saveSessionState(true);
+    mic.setAttribute("title", "Voice assistant is on. Say stop listening to end.");
+    startListening();
+  }
+
+  function endVoiceSession(message = "Voice assistant stopped.") {
+    sessionActive = false;
+    suspendAutoRestart = true;
+    clearTimeout(restartTimer);
+    saveSessionState(false);
+
+    if (recognition && listening) {
+      try { recognition.stop(); } catch (_) {}
+    }
+
+    if (synth) synth.cancel();
+    readQueue = [];
+    readIndex = 0;
+    reading = false;
+
+    if (highlighted) {
+      highlighted.classList.remove("voice-highlight");
+      highlighted = null;
+    }
+
+    mic.classList.remove("listening");
+    mic.setAttribute("aria-label", "Use voice assistant");
+    mic.setAttribute("title", "Voice assistant");
+
+    if (message) showBubble(message);
+  }
+
   function stopRecognition() {
     if (!recognition || !listening) return;
     try { recognition.stop(); } catch (_) {}
@@ -181,38 +236,41 @@
   }
 
   function speakShort(message, { listenAfter = false, sticky = false } = {}) {
-    showBubble(message, { sticky: sticky || listenAfter });
+    const shouldResume = sessionActive || listenAfter;
+    showBubble(message, { sticky: sticky || shouldResume });
 
     if (!synth || !window.SpeechSynthesisUtterance) {
-      if (listenAfter) window.setTimeout(startListening, 250);
+      if (shouldResume) scheduleListening(250);
       return;
     }
 
     stopReading(false);
+    suspendAutoRestart = true;
     stopRecognition();
 
     const utterance = new SpeechSynthesisUtterance(message);
     utterance.lang = "en-CA";
     utterance.rate = 0.96;
 
-    utterance.onend = () => {
-      if (listenAfter) window.setTimeout(startListening, 160);
+    const finish = () => {
+      suspendAutoRestart = false;
+      if (shouldResume) scheduleListening(220);
     };
 
-    utterance.onerror = () => {
-      if (listenAfter) window.setTimeout(startListening, 160);
-    };
-
+    utterance.onend = finish;
+    utterance.onerror = finish;
     synth.speak(utterance);
   }
 
   function speakLong(text, label = "Reading") {
     if (!synth || !window.SpeechSynthesisUtterance) {
       showBubble("Text-to-speech is not available in this browser.");
+      scheduleListening(250);
       return;
     }
 
     stopReading(false);
+    suspendAutoRestart = true;
     stopRecognition();
 
     readQueue = chunkText(text);
@@ -220,11 +278,13 @@
     reading = readQueue.length > 0;
 
     if (!reading) {
+      suspendAutoRestart = false;
       showBubble("There is nothing to read here.");
+      scheduleListening(250);
       return;
     }
 
-    showBubble(`${label}… Tap the mic and say “pause”, “resume” or “stop”.`, { sticky: true });
+    showBubble(`${label}… The assistant will listen again when it finishes. Tap the mic to stop immediately.`, { sticky: true });
 
     const next = () => {
       if (!reading || readIndex >= readQueue.length) {
@@ -236,7 +296,9 @@
           highlighted = null;
         }
 
-        showBubble("Finished reading.");
+        suspendAutoRestart = false;
+        showBubble("Finished reading. Listening again…", { sticky: true });
+        scheduleListening(250);
         return;
       }
 
@@ -252,32 +314,30 @@
   }
 
   function startListening() {
-    hideConfirm();
     hideFallback();
 
     if (!Recognition) {
+      sessionActive = false;
+      saveSessionState(false);
       showFallback("This browser does not support voice recognition. Type a command instead.");
       return;
     }
 
-    if (listening) return;
-
-    if (synth?.speaking && !synth.paused) {
-      synth.pause();
-    }
+    if (!sessionActive || suspendAutoRestart || listening || reading) return;
 
     try {
       recognition.start();
     } catch (error) {
       console.warn("Voice recognition could not start:", error);
-      showBubble("Tap the microphone again, or type a command.", { sticky: true });
+      showBubble("Voice is still on. Trying the microphone again…", { sticky: true });
+      scheduleListening(900);
     }
   }
 
   if (Recognition) {
     recognition = new Recognition();
     recognition.lang = "en-CA";
-    recognition.continuous = false;
+    recognition.continuous = true;
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
 
@@ -289,27 +349,39 @@
     });
 
     recognition.addEventListener("result", event => {
-      const result = event.results?.[0]?.[0]?.transcript?.trim() || "";
-      showBubble(`“${result}”`, { heard: true });
-      handleCommand(result);
+      for (let i = event.resultIndex; i < event.results.length; i += 1) {
+        if (!event.results[i].isFinal) continue;
+        const result = event.results[i]?.[0]?.transcript?.trim() || "";
+        if (!result) continue;
+        showBubble(`“${result}”`, { heard: true });
+        handleCommand(result);
+      }
     });
 
     recognition.addEventListener("error", event => {
       if (event.error === "aborted") return;
 
       if (event.error === "not-allowed" || event.error === "service-not-allowed") {
+        sessionActive = false;
+        saveSessionState(false);
         showFallback("Microphone access is blocked. Allow microphone access for myinvest.ca, or type a command.");
       } else if (event.error === "no-speech") {
-        showBubble("I didn't hear anything. Tap the microphone and try again.");
+        if (sessionActive) showBubble("Listening…", { sticky: true });
       } else {
-        showBubble("Voice recognition had a problem. Tap the microphone and try again.");
+        if (sessionActive) showBubble("Voice is still on. Reconnecting to the microphone…", { sticky: true });
       }
     });
 
     recognition.addEventListener("end", () => {
       listening = false;
       mic.classList.remove("listening");
-      mic.setAttribute("aria-label", "Use voice assistant");
+
+      if (sessionActive) {
+        mic.setAttribute("aria-label", "Voice assistant is on. Tap to stop.");
+        scheduleListening(350);
+      } else {
+        mic.setAttribute("aria-label", "Use voice assistant");
+      }
     });
   }
 
@@ -659,16 +731,10 @@
 
     showConfirm(summary, submitWebinarRegistration, "Confirm registration");
 
-    if (synth && window.SpeechSynthesisUtterance) {
-      stopRecognition();
-      const utterance = new SpeechSynthesisUtterance(
-        `I have ${name}, email ${spokenEmail(email)}, and phone ${phone}. You can tap Confirm registration, or tap the microphone and say confirm registration, change name, change email, change phone, or cancel.`
-      );
-      utterance.lang = "en-CA";
-      utterance.rate = 0.96;
-      synth.cancel();
-      synth.speak(utterance);
-    }
+    speakShort(
+      `I have ${name}, email ${spokenEmail(email)}, and phone ${phone}. Say confirm registration, change name, change email, change phone, or cancel.`,
+      { sticky: true }
+    );
   }
 
   function watchWebinarResult() {
@@ -877,18 +943,10 @@
       "Send inquiry"
     );
 
-    if (synth && window.SpeechSynthesisUtterance) {
-      stopRecognition();
-
-      const utterance = new SpeechSynthesisUtterance(
-        `Your inquiry is prepared for ${name}, email ${spokenEmail(email)}. Tap Send inquiry to submit, or tap the microphone and say confirm inquiry, change name, change phone, change email, change message, or cancel.`
-      );
-
-      utterance.lang = "en-CA";
-      utterance.rate = 0.96;
-      synth.cancel();
-      synth.speak(utterance);
-    }
+    speakShort(
+      `Your inquiry is prepared for ${name}, email ${spokenEmail(email)}. Say confirm inquiry, change name, change phone, change email, change message, or cancel.`,
+      { sticky: true }
+    );
   }
 
   function handleInquiryFlow(raw, command) {
@@ -1095,18 +1153,24 @@
       return;
     }
 
+    if (/\b(stop listening|stop voice|turn off voice|turn off microphone|end voice|goodbye|bye)\b/.test(command) || command === "stop") {
+      endVoiceSession("Voice assistant stopped.");
+      return;
+    }
+
     if (currentFlow?.type === "webinar" && handleWebinarFlow(raw, command)) return;
     if (currentFlow?.type === "inquiry" && handleInquiryFlow(raw, command)) return;
 
-    if (/\b(stop|cancel) reading\b/.test(command) || command === "stop") {
+    if (/\b(stop|cancel) reading\b/.test(command)) {
       stopReading();
+      scheduleListening(250);
       return;
     }
 
     if (/\bpause( reading)?\b/.test(command)) {
       if (synth?.speaking) {
         synth.pause();
-        showBubble("Reading paused. Tap the mic and say “resume”.", { sticky: true });
+        showBubble("Reading paused. Say “resume” after the current speech stops, or tap the mic.", { sticky: true });
       } else {
         showBubble("Nothing is being read right now.");
       }
@@ -1283,12 +1347,12 @@
   }
 
   mic.addEventListener("click", () => {
-    if (listening) {
-      stopRecognition();
+    if (sessionActive) {
+      endVoiceSession("Voice assistant stopped.");
       return;
     }
 
-    startListening();
+    startVoiceSession();
   });
 
   confirmYes.addEventListener("click", () => {
@@ -1310,5 +1374,16 @@
     handleCommand(value);
   });
 
-  processUrlActions();
+  try {
+    sessionActive = sessionStorage.getItem("myinvestVoiceSession") === "1";
+  } catch (_) {
+    sessionActive = false;
+  }
+
+  processUrlActions().finally(() => {
+    if (sessionActive && !reading) {
+      mic.setAttribute("title", "Voice assistant is on. Say stop listening to end.");
+      scheduleListening(550);
+    }
+  });
 })();
