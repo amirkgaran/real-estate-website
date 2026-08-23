@@ -24,66 +24,44 @@
   let readIndex = 0;
   let reading = false;
   let highlighted = null;
+  let bubbleTimer = null;
+  let confirmAction = null;
 
   const root = document.createElement("div");
   root.className = "voice-assistant";
   root.innerHTML = `
-    <button id="voiceFab" class="voice-fab" type="button" aria-expanded="false" aria-controls="voicePanel">
-      <span class="voice-fab-icon" aria-hidden="true">🎙</span>
-      <span>Voice</span>
-    </button>
+    <div id="voiceBubble" class="voice-bubble" hidden aria-live="polite"></div>
 
-    <section id="voicePanel" class="voice-panel" hidden aria-label="MyInvest voice assistant">
-      <div class="voice-panel-header">
-        <div>
-          <h2 class="voice-panel-title">MyInvest Voice Assistant</h2>
-          <p class="voice-panel-subtitle">Navigate, listen, register and request information.</p>
-        </div>
-        <button id="voiceClose" class="voice-close" type="button" aria-label="Close voice assistant">×</button>
+    <div id="voiceConfirm" class="voice-confirm" hidden role="dialog" aria-label="Confirm action">
+      <p id="voiceConfirmText"></p>
+      <div class="voice-confirm-actions">
+        <button id="voiceConfirmYes" class="voice-confirm-primary" type="button">Confirm</button>
+        <button id="voiceConfirmNo" class="voice-confirm-secondary" type="button">Cancel</button>
       </div>
+    </div>
 
-      <div class="voice-panel-body">
-        <p id="voiceStatus" class="voice-status" aria-live="polite">
-          Tap “Speak” and say a command, or type one below.
-        </p>
-        <p id="voiceTranscript" class="voice-transcript"></p>
+    <div id="voiceFallback" class="voice-fallback" hidden>
+      <p id="voiceFallbackMessage">Voice input is unavailable. Type a command instead.</p>
+      <form id="voiceFallbackForm" class="voice-fallback-form">
+        <input id="voiceFallbackInput" type="text" autocomplete="off" aria-label="Type a command" placeholder="Example: go to Insights">
+        <button type="submit">Go</button>
+      </form>
+    </div>
 
-        <button id="voiceSpeak" class="voice-speak-button" type="button">🎙 Speak</button>
-
-        <form id="voiceCommandForm" class="voice-command-form">
-          <input id="voiceCommandInput" type="text" autocomplete="off" aria-label="Type a voice assistant command" placeholder="Example: read the Buying article">
-          <button type="submit">Go</button>
-        </form>
-
-        <div class="voice-examples">
-          <p class="voice-examples-title">Try saying</p>
-          <div class="voice-example-grid">
-            <button class="voice-example" type="button" data-command="go to insights">Go to Insights</button>
-            <button class="voice-example" type="button" data-command="read the buying article">Read Buying</button>
-            <button class="voice-example" type="button" data-command="what webinars are coming up">Upcoming webinars</button>
-            <button class="voice-example" type="button" data-command="register for the next webinar">Register for webinar</button>
-            <button class="voice-example" type="button" data-command="show homes for sale">Homes for sale</button>
-            <button class="voice-example" type="button" data-command="request details">Request details</button>
-          </div>
-        </div>
-
-        <p id="voiceBrowserNote" class="voice-browser-note">
-          Voice recognition is provided by your browser. You control the microphone permission.
-        </p>
-      </div>
-    </section>
+    <button id="voiceMic" class="voice-mic" type="button" aria-label="Use voice assistant" title="Voice assistant">🎙</button>
   `;
   document.body.appendChild(root);
 
-  const fab = root.querySelector("#voiceFab");
-  const panel = root.querySelector("#voicePanel");
-  const close = root.querySelector("#voiceClose");
-  const speakButton = root.querySelector("#voiceSpeak");
-  const status = root.querySelector("#voiceStatus");
-  const transcript = root.querySelector("#voiceTranscript");
-  const commandForm = root.querySelector("#voiceCommandForm");
-  const commandInput = root.querySelector("#voiceCommandInput");
-  const browserNote = root.querySelector("#voiceBrowserNote");
+  const mic = root.querySelector("#voiceMic");
+  const bubble = root.querySelector("#voiceBubble");
+  const confirmCard = root.querySelector("#voiceConfirm");
+  const confirmText = root.querySelector("#voiceConfirmText");
+  const confirmYes = root.querySelector("#voiceConfirmYes");
+  const confirmNo = root.querySelector("#voiceConfirmNo");
+  const fallback = root.querySelector("#voiceFallback");
+  const fallbackMessage = root.querySelector("#voiceFallbackMessage");
+  const fallbackForm = root.querySelector("#voiceFallbackForm");
+  const fallbackInput = root.querySelector("#voiceFallbackInput");
 
   function normalize(value = "") {
     return String(value)
@@ -94,22 +72,47 @@
       .trim();
   }
 
-  function setStatus(message) {
-    status.textContent = message;
+  function showBubble(message, { sticky = false, heard = false } = {}) {
+    clearTimeout(bubbleTimer);
+    bubble.textContent = message;
+    bubble.classList.toggle("heard", heard);
+    bubble.hidden = false;
+
+    if (!sticky) {
+      bubbleTimer = setTimeout(() => {
+        if (!listening && !currentFlow && !reading) bubble.hidden = true;
+      }, 3300);
+    }
   }
 
-  function setTranscript(message = "") {
-    transcript.textContent = message ? `Heard: “${message}”` : "";
+  function hideBubble() {
+    clearTimeout(bubbleTimer);
+    bubble.hidden = true;
   }
 
-  function openPanel() {
-    panel.hidden = false;
-    fab.setAttribute("aria-expanded", "true");
+  function showFallback(message = "Voice input is unavailable. Type a command instead.") {
+    fallbackMessage.textContent = message;
+    fallback.hidden = false;
+    confirmCard.hidden = true;
+    fallbackInput.focus();
   }
 
-  function closePanel() {
-    panel.hidden = true;
-    fab.setAttribute("aria-expanded", "false");
+  function hideFallback() {
+    fallback.hidden = true;
+  }
+
+  function showConfirm(message, action, label = "Confirm") {
+    confirmText.textContent = message;
+    confirmYes.textContent = label;
+    confirmAction = action;
+    confirmCard.hidden = false;
+    hideFallback();
+    hideBubble();
+  }
+
+  function hideConfirm() {
+    confirmCard.hidden = true;
+    confirmAction = null;
   }
 
   function currentPage() {
@@ -127,16 +130,19 @@
     readIndex = 0;
     reading = false;
     if (synth) synth.cancel();
+
     if (highlighted) {
       highlighted.classList.remove("voice-highlight");
       highlighted = null;
     }
-    if (update) setStatus("Reading stopped.");
+
+    if (update) showBubble("Reading stopped.");
   }
 
   function chunkText(text, max = 230) {
     const clean = String(text || "").replace(/\s+/g, " ").trim();
     if (!clean) return [];
+
     const sentences = clean.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [clean];
     const chunks = [];
     let current = "";
@@ -159,6 +165,7 @@
 
       const words = sentence.split(/\s+/);
       current = "";
+
       for (const word of words) {
         if ((current + " " + word).trim().length > max && current) {
           chunks.push(current);
@@ -173,8 +180,8 @@
     return chunks;
   }
 
-  function speakShort(message, { listenAfter = false } = {}) {
-    setStatus(message);
+  function speakShort(message, { listenAfter = false, sticky = false } = {}) {
+    showBubble(message, { sticky: sticky || listenAfter });
 
     if (!synth || !window.SpeechSynthesisUtterance) {
       if (listenAfter) window.setTimeout(startListening, 250);
@@ -183,46 +190,53 @@
 
     stopReading(false);
     stopRecognition();
+
     const utterance = new SpeechSynthesisUtterance(message);
     utterance.lang = "en-CA";
     utterance.rate = 0.96;
+
     utterance.onend = () => {
-      if (listenAfter) window.setTimeout(startListening, 180);
+      if (listenAfter) window.setTimeout(startListening, 160);
     };
+
     utterance.onerror = () => {
-      if (listenAfter) window.setTimeout(startListening, 180);
+      if (listenAfter) window.setTimeout(startListening, 160);
     };
+
     synth.speak(utterance);
   }
 
   function speakLong(text, label = "Reading") {
     if (!synth || !window.SpeechSynthesisUtterance) {
-      setStatus("Text-to-speech is not available in this browser.");
+      showBubble("Text-to-speech is not available in this browser.");
       return;
     }
 
     stopReading(false);
     stopRecognition();
+
     readQueue = chunkText(text);
     readIndex = 0;
     reading = readQueue.length > 0;
 
     if (!reading) {
-      setStatus("There is nothing to read here.");
+      showBubble("There is nothing to read here.");
       return;
     }
 
-    setStatus(`${label}. Say “pause reading”, “resume reading” or “stop reading”.`);
+    showBubble(`${label}… Tap the mic and say “pause”, “resume” or “stop”.`, { sticky: true });
 
     const next = () => {
       if (!reading || readIndex >= readQueue.length) {
         reading = false;
         readQueue = [];
+
         if (highlighted) {
           highlighted.classList.remove("voice-highlight");
           highlighted = null;
         }
-        setStatus("Finished reading.");
+
+        showBubble("Finished reading.");
         return;
       }
 
@@ -238,11 +252,11 @@
   }
 
   function startListening() {
-    openPanel();
+    hideConfirm();
+    hideFallback();
 
     if (!Recognition) {
-      setStatus("Voice input is not supported in this browser. You can still type commands below. Chrome or Edge usually provides the best support.");
-      commandInput.focus();
+      showFallback("This browser does not support voice recognition. Type a command instead.");
       return;
     }
 
@@ -256,7 +270,7 @@
       recognition.start();
     } catch (error) {
       console.warn("Voice recognition could not start:", error);
-      setStatus("I could not start the microphone. Tap Speak again, or type your command.");
+      showBubble("Tap the microphone again, or type a command.", { sticky: true });
     }
   }
 
@@ -269,42 +283,40 @@
 
     recognition.addEventListener("start", () => {
       listening = true;
-      speakButton.classList.add("listening");
-      speakButton.textContent = "Listening…";
-      setStatus("Listening…");
+      mic.classList.add("listening");
+      mic.setAttribute("aria-label", "Listening. Tap to stop.");
+      showBubble("Listening…", { sticky: true });
     });
 
     recognition.addEventListener("result", event => {
       const result = event.results?.[0]?.[0]?.transcript?.trim() || "";
-      setTranscript(result);
+      showBubble(`“${result}”`, { heard: true });
       handleCommand(result);
     });
 
     recognition.addEventListener("error", event => {
       if (event.error === "aborted") return;
+
       if (event.error === "not-allowed" || event.error === "service-not-allowed") {
-        setStatus("Microphone access was blocked. Allow microphone access for myinvest.ca, or type a command below.");
+        showFallback("Microphone access is blocked. Allow microphone access for myinvest.ca, or type a command.");
       } else if (event.error === "no-speech") {
-        setStatus("I did not hear anything. Tap Speak and try again.");
+        showBubble("I didn't hear anything. Tap the microphone and try again.");
       } else {
-        setStatus("Voice recognition had a problem. Please try again or type your command.");
+        showBubble("Voice recognition had a problem. Tap the microphone and try again.");
       }
     });
 
     recognition.addEventListener("end", () => {
       listening = false;
-      speakButton.classList.remove("listening");
-      speakButton.textContent = "🎙 Speak";
+      mic.classList.remove("listening");
+      mic.setAttribute("aria-label", "Use voice assistant");
     });
-  } else {
-    speakButton.disabled = true;
-    speakButton.textContent = "Voice input unavailable";
-    browserNote.textContent = "This browser does not expose speech recognition. Typed commands and text-to-speech can still work.";
   }
 
   function waitFor(selector, timeout = 9000) {
     return new Promise(resolve => {
       const existing = document.querySelector(selector);
+
       if (existing) {
         resolve(existing);
         return;
@@ -313,12 +325,14 @@
       const observer = new MutationObserver(() => {
         const found = document.querySelector(selector);
         if (!found) return;
+
         observer.disconnect();
         clearTimeout(timer);
         resolve(found);
       });
 
       observer.observe(document.documentElement, { childList: true, subtree: true });
+
       const timer = setTimeout(() => {
         observer.disconnect();
         resolve(null);
@@ -327,15 +341,17 @@
   }
 
   function navigate(url, label) {
-    setStatus(`Opening ${label}…`);
+    showBubble(`Opening ${label}…`);
     window.location.href = url;
   }
 
   function cleanTarget(text, words) {
     let out = normalize(text);
+
     for (const word of words) {
       out = out.replace(new RegExp(`\\b${word}\\b`, "g"), " ");
     }
+
     return out.replace(/\s+/g, " ").trim();
   }
 
@@ -344,6 +360,7 @@
     if (!cards.length) return null;
 
     const center = window.innerHeight * 0.42;
+
     return cards
       .map(card => ({ card, distance: Math.abs(card.getBoundingClientRect().top - center) }))
       .sort((a, b) => a.distance - b.distance)[0]?.card || cards[0];
@@ -352,6 +369,7 @@
   function findInsightCard(target = "") {
     const cards = [...document.querySelectorAll(".insight-card")];
     if (!cards.length) return null;
+
     const wanted = normalize(target);
 
     if (!wanted || ["this", "current", "article", "insight"].includes(wanted)) {
@@ -364,6 +382,7 @@
         card.querySelector(".eyebrow")?.textContent,
         card.querySelector("h2")?.textContent
       ].filter(Boolean).join(" "));
+
       return hay.includes(wanted) || wanted.includes(hay);
     }) || cards.find(card => normalize(card.textContent).includes(wanted));
   }
@@ -378,29 +397,33 @@
     }
 
     const found = await waitFor(".insight-card");
+
     if (!found) {
       speakShort("I could not find any published insight articles.");
       return;
     }
 
     const card = findInsightCard(target);
+
     if (!card) {
       speakShort(`I could not find an insight matching ${target}. Say “list insights” to hear the available topics.`);
       return;
     }
 
     card.scrollIntoView({ behavior: "smooth", block: "center" });
+
     if (highlighted) highlighted.classList.remove("voice-highlight");
     highlighted = card;
     card.classList.add("voice-highlight");
 
     const title = card.querySelector("h2")?.textContent?.trim() || "this article";
-    setStatus(`Opened “${title}”.`);
 
     if (read) {
       const category = card.querySelector(".eyebrow")?.textContent?.trim() || "";
       const body = card.querySelector(".insight-body")?.textContent?.trim() || card.textContent.trim();
       speakLong(`${category}. ${title}. ${body}`, `Reading ${title}`);
+    } else {
+      speakShort(`Opened ${title}.`);
     }
   }
 
@@ -411,12 +434,14 @@
     }
 
     const found = await waitFor(".insight-card");
+
     if (!found) {
       speakShort("I could not find any published insight articles.");
       return;
     }
 
     const cards = [...document.querySelectorAll(".insight-card")];
+
     const names = cards.map(card => {
       const category = card.querySelector(".eyebrow")?.textContent?.trim();
       const title = card.querySelector("h2")?.textContent?.trim();
@@ -432,6 +457,7 @@
       .replace(/\bwebinar(s)?\b/g, " ")
       .replace(/\s+/g, " ")
       .trim();
+
     if (!value || value === "next" || value === "upcoming") return "next";
     return value;
   }
@@ -441,7 +467,10 @@
     if (!buttons.length) return null;
 
     const wanted = normalize(target);
-    if (!wanted || wanted === "next" || wanted === "first" || wanted === "upcoming") return buttons[0];
+
+    if (!wanted || wanted === "next" || wanted === "first" || wanted === "upcoming") {
+      return buttons[0];
+    }
 
     return buttons.find(button => {
       const card = button.closest(".webinar-card");
@@ -453,9 +482,11 @@
   function webinarSummary(button) {
     const card = button?.closest(".webinar-card");
     if (!card) return "the selected webinar";
+
     const title = card.querySelector("h3")?.textContent?.trim() || "the selected webinar";
     const date = card.querySelector(".webinar-date")?.textContent?.trim() || "";
     const time = card.querySelector(".webinar-time")?.textContent?.trim() || "";
+
     return [title, date, time].filter(Boolean).join(", ");
   }
 
@@ -469,14 +500,16 @@
     }
 
     const found = await waitFor(".webinar-register-button[data-webinar-id]");
+
     if (!found) {
       speakShort("There are no published upcoming webinars available for registration right now.");
       return;
     }
 
     const button = findWebinarButton(target);
+
     if (!button) {
-      speakShort(`I could not match that webinar. Say “what webinars are coming up” to hear the available webinars.`);
+      speakShort("I could not match that webinar. Say “what webinars are coming up” to hear the available webinars.");
       return;
     }
 
@@ -484,18 +517,15 @@
     await new Promise(resolve => setTimeout(resolve, 120));
 
     const form = document.getElementById("webinarRegistrationForm");
+
     if (!form) {
       speakShort("I could not open the webinar registration form.");
       return;
     }
 
-    currentFlow = {
-      type: "webinar",
-      stage: "name",
-      form
-    };
+    currentFlow = { type: "webinar", stage: "name", form };
 
-    speakShort(`Let's register you for ${webinarSummary(button)}. What name should I use?`, { listenAfter: true });
+    speakShort(`Let's register you for ${webinarSummary(button)}. What name should I use?`, { listenAfter: true, sticky: true });
   }
 
   async function listWebinars() {
@@ -505,12 +535,14 @@
     }
 
     const found = await waitFor(".webinar-card");
+
     if (!found) {
       speakShort("There are no published upcoming webinars right now.");
       return;
     }
 
     const cards = [...document.querySelectorAll(".webinar-card")];
+
     const descriptions = cards.slice(0, 6).map((card, index) => {
       const title = card.querySelector("h3")?.textContent?.trim() || `Webinar ${index + 1}`;
       const date = card.querySelector(".webinar-date")?.textContent?.trim() || "";
@@ -543,7 +575,12 @@
     };
 
     let value = String(raw || "").toLowerCase();
-    value = value.replace(/\b(zero|oh|one|two|to|three|four|for|five|six|seven|eight|ate|nine)\b/g, match => words[match] || match);
+
+    value = value.replace(
+      /\b(zero|oh|one|two|to|three|four|for|five|six|seven|eight|ate|nine)\b/g,
+      match => words[match] || match
+    );
+
     return value.replace(/[^\d+]/g, "");
   }
 
@@ -553,7 +590,9 @@
 
   function flowCancel() {
     if (!currentFlow) return;
+
     const type = currentFlow.type;
+
     if (type === "webinar") {
       const dialog = document.getElementById("webinarRegistrationModal");
       if (dialog?.open && typeof dialog.close === "function") dialog.close();
@@ -561,7 +600,9 @@
       const dialog = document.getElementById("inquiryModal");
       if (dialog?.open && typeof dialog.close === "function") dialog.close();
     }
+
     currentFlow = null;
+    hideConfirm();
     speakShort("Cancelled. Nothing was submitted.");
   }
 
@@ -571,29 +612,63 @@
       email: document.getElementById("registrationEmail"),
       phone: document.getElementById("registrationPhone")
     };
+
     return map[name];
   }
 
   function askWebinarStage(stage) {
     if (!currentFlow || currentFlow.type !== "webinar") return;
+
+    hideConfirm();
     currentFlow.stage = stage;
+
     const prompts = {
       name: "What name should I use?",
-      email: "What email address should I use? You can say something like name at gmail dot com.",
+      email: "What email address should I use? You can say name at gmail dot com.",
       phone: "What contact number should I use?"
     };
-    speakShort(prompts[stage], { listenAfter: true });
+
+    speakShort(prompts[stage], { listenAfter: true, sticky: true });
+  }
+
+  function submitWebinarRegistration() {
+    if (!currentFlow || currentFlow.type !== "webinar") return;
+
+    const form = currentFlow.form;
+
+    if (!form.reportValidity()) {
+      speakShort("One of the registration fields needs correction. Please review the form on screen.");
+      return;
+    }
+
+    currentFlow = null;
+    hideConfirm();
+    watchWebinarResult();
+    speakShort("Submitting your webinar registration now.");
+    form.requestSubmit();
   }
 
   function webinarConfirmation() {
     const name = fieldForWebinar("name")?.value?.trim() || "";
     const email = fieldForWebinar("email")?.value?.trim() || "";
     const phone = fieldForWebinar("phone")?.value?.trim() || "";
+
     currentFlow.stage = "confirm";
-    speakShort(
-      `I have ${name}, email ${spokenEmail(email)}, and phone ${phone}. Say “confirm registration” to submit, or say “change name”, “change email”, “change phone”, or “cancel”.`,
-      { listenAfter: true }
-    );
+
+    const summary = `Register ${name} for this webinar using ${email} and ${phone}?`;
+
+    showConfirm(summary, submitWebinarRegistration, "Confirm registration");
+
+    if (synth && window.SpeechSynthesisUtterance) {
+      stopRecognition();
+      const utterance = new SpeechSynthesisUtterance(
+        `I have ${name}, email ${spokenEmail(email)}, and phone ${phone}. You can tap Confirm registration, or tap the microphone and say confirm registration, change name, change email, change phone, or cancel.`
+      );
+      utterance.lang = "en-CA";
+      utterance.rate = 0.96;
+      synth.cancel();
+      synth.speak(utterance);
+    }
   }
 
   function watchWebinarResult() {
@@ -601,10 +676,13 @@
     if (!message) return;
 
     let done = false;
+
     const announce = () => {
       if (done) return;
+
       const text = message.textContent?.trim() || "";
       if (!text || /registering/i.test(text)) return;
+
       done = true;
       observer.disconnect();
       speakShort(text);
@@ -612,6 +690,7 @@
 
     const observer = new MutationObserver(announce);
     observer.observe(message, { childList: true, subtree: true, characterData: true });
+
     setTimeout(() => {
       if (!done) observer.disconnect();
     }, 15000);
@@ -627,10 +706,12 @@
       askWebinarStage("name");
       return true;
     }
+
     if (/\bchange email\b/.test(command)) {
       askWebinarStage("email");
       return true;
     }
+
     if (/\bchange (phone|number|contact)\b/.test(command)) {
       askWebinarStage("phone");
       return true;
@@ -638,33 +719,44 @@
 
     if (currentFlow.stage === "name") {
       const value = String(raw).replace(/^\s*(my\s+)?name\s+(is\s+)?/i, "").trim();
+
       if (value.length < 2) {
-        speakShort("I did not catch the name. Please say the name again.", { listenAfter: true });
+        speakShort("I did not catch the name. Please say the name again.", { listenAfter: true, sticky: true });
         return true;
       }
+
       fieldForWebinar("name").value = value;
       askWebinarStage("email");
       return true;
     }
 
     if (currentFlow.stage === "email") {
-      const value = normalizeSpokenEmail(raw.replace(/^\s*(my\s+)?email(\s+address)?\s+(is\s+)?/i, ""));
+      const value = normalizeSpokenEmail(
+        raw.replace(/^\s*(my\s+)?email(\s+address)?\s+(is\s+)?/i, "")
+      );
+
       const field = fieldForWebinar("email");
       field.value = value;
+
       if (!field.checkValidity()) {
-        speakShort("That does not look like a complete email address. Please say it again, for example name at gmail dot com.", { listenAfter: true });
+        speakShort("That does not look like a complete email address. Please say it again.", { listenAfter: true, sticky: true });
         return true;
       }
+
       askWebinarStage("phone");
       return true;
     }
 
     if (currentFlow.stage === "phone") {
-      const value = normalizeSpokenPhone(raw.replace(/^\s*(my\s+)?(phone|contact|number)(\s+number)?\s+(is\s+)?/i, ""));
+      const value = normalizeSpokenPhone(
+        raw.replace(/^\s*(my\s+)?(phone|contact|number)(\s+number)?\s+(is\s+)?/i, "")
+      );
+
       if (value.replace(/\D/g, "").length < 7) {
-        speakShort("I did not catch a complete phone number. Please say the number again.", { listenAfter: true });
+        speakShort("I did not catch a complete phone number. Please say the number again.", { listenAfter: true, sticky: true });
         return true;
       }
+
       fieldForWebinar("phone").value = value;
       webinarConfirmation();
       return true;
@@ -672,19 +764,11 @@
 
     if (currentFlow.stage === "confirm") {
       if (/\b(confirm|submit|yes|register)\b/.test(command)) {
-        const form = currentFlow.form;
-        if (!form.reportValidity()) {
-          speakShort("One of the registration fields needs correction. Please review the form on screen.");
-          return true;
-        }
-        currentFlow = null;
-        watchWebinarResult();
-        speakShort("Submitting your webinar registration now.");
-        form.requestSubmit();
+        submitWebinarRegistration();
         return true;
       }
 
-      speakShort("Please say “confirm registration”, “change name”, “change email”, “change phone”, or “cancel”.", { listenAfter: true });
+      speakShort("Tap Confirm registration, or say confirm registration, change name, change email, change phone, or cancel.");
       return true;
     }
 
@@ -693,34 +777,40 @@
 
   function visibleInquiryForm() {
     const modal = document.getElementById("inquiryModal");
+
     if (modal?.open) return modal.querySelector("#inquiryForm");
-    const form = document.getElementById("inquiryForm");
-    if (form && !modal?.contains(form)) return form;
-    return form;
+
+    return document.getElementById("inquiryForm");
   }
 
   async function beginInquiry() {
     if (currentPage() === "contact.html") {
       const form = await waitFor("#inquiryForm");
+
       if (!form) {
         speakShort("I could not find the contact form.");
         return;
       }
+
       form.scrollIntoView({ behavior: "smooth", block: "center" });
       currentFlow = { type: "inquiry", stage: "name", form };
-      speakShort("I can help prepare your inquiry. What name should I use?", { listenAfter: true });
+      speakShort("I can help prepare your inquiry. What name should I use?", { listenAfter: true, sticky: true });
       return;
     }
 
     const modal = await waitFor("#inquiryModal");
+
     if (modal) {
       const opener = document.querySelector("[data-inquiry-open]");
       if (opener) opener.click();
+
       await new Promise(resolve => setTimeout(resolve, 100));
+
       const form = visibleInquiryForm();
+
       if (form) {
         currentFlow = { type: "inquiry", stage: "name", form };
-        speakShort("I can help prepare your request. What name should I use?", { listenAfter: true });
+        speakShort("I can help prepare your request. What name should I use?", { listenAfter: true, sticky: true });
         return;
       }
     }
@@ -731,36 +821,74 @@
   function inquiryField(name) {
     const form = currentFlow?.form;
     if (!form) return null;
+
     const selectors = {
       name: 'input[name="Name"]',
       phone: 'input[name="Contact number"]',
       email: 'input[name="Email"]',
       description: 'textarea[name="Brief description"]'
     };
+
     return form.querySelector(selectors[name]);
   }
 
   function askInquiryStage(stage) {
     if (!currentFlow || currentFlow.type !== "inquiry") return;
+
+    hideConfirm();
     currentFlow.stage = stage;
+
     const prompts = {
       name: "What name should I use?",
       phone: "What contact number should I use?",
       email: "What email address should I use?",
       description: "Briefly, what would you like Amir to help you with?"
     };
-    speakShort(prompts[stage], { listenAfter: true });
+
+    speakShort(prompts[stage], { listenAfter: true, sticky: true });
+  }
+
+  function submitInquiry() {
+    if (!currentFlow || currentFlow.type !== "inquiry") return;
+
+    const form = currentFlow.form;
+
+    if (!form.reportValidity()) {
+      speakShort("One of the inquiry fields needs correction. Please review the form on screen.");
+      return;
+    }
+
+    currentFlow = null;
+    hideConfirm();
+    speakShort("Sending your inquiry now.");
+    form.requestSubmit();
   }
 
   function inquiryConfirmation() {
     const name = inquiryField("name")?.value?.trim() || "";
     const email = inquiryField("email")?.value?.trim() || "";
     const description = inquiryField("description")?.value?.trim() || "";
+
     currentFlow.stage = "confirm";
-    speakShort(
-      `Your inquiry is prepared for ${name}, email ${spokenEmail(email)}. Your message begins: ${description.slice(0, 120)}. Say “confirm inquiry” to send it, or say “change name”, “change phone”, “change email”, “change message”, or “cancel”.`,
-      { listenAfter: true }
+
+    showConfirm(
+      `Send this inquiry for ${name}? “${description.slice(0, 105)}${description.length > 105 ? "…" : ""}”`,
+      submitInquiry,
+      "Send inquiry"
     );
+
+    if (synth && window.SpeechSynthesisUtterance) {
+      stopRecognition();
+
+      const utterance = new SpeechSynthesisUtterance(
+        `Your inquiry is prepared for ${name}, email ${spokenEmail(email)}. Tap Send inquiry to submit, or tap the microphone and say confirm inquiry, change name, change phone, change email, change message, or cancel.`
+      );
+
+      utterance.lang = "en-CA";
+      utterance.rate = 0.96;
+      synth.cancel();
+      synth.speak(utterance);
+    }
   }
 
   function handleInquiryFlow(raw, command) {
@@ -785,10 +913,12 @@
 
     if (currentFlow.stage === "name") {
       const value = String(raw).replace(/^\s*(my\s+)?name\s+(is\s+)?/i, "").trim();
+
       if (value.length < 2) {
-        speakShort("I did not catch the name. Please say it again.", { listenAfter: true });
+        speakShort("I did not catch the name. Please say it again.", { listenAfter: true, sticky: true });
         return true;
       }
+
       inquiryField("name").value = value;
       askInquiryStage("phone");
       return true;
@@ -796,10 +926,12 @@
 
     if (currentFlow.stage === "phone") {
       const value = normalizeSpokenPhone(raw);
+
       if (value.replace(/\D/g, "").length < 7) {
-        speakShort("I did not catch a complete phone number. Please say it again.", { listenAfter: true });
+        speakShort("I did not catch a complete phone number. Please say it again.", { listenAfter: true, sticky: true });
         return true;
       }
+
       inquiryField("phone").value = value;
       askInquiryStage("email");
       return true;
@@ -809,20 +941,26 @@
       const value = normalizeSpokenEmail(raw);
       const field = inquiryField("email");
       field.value = value;
+
       if (!field.checkValidity()) {
-        speakShort("That email address does not look complete. Please say it again.", { listenAfter: true });
+        speakShort("That email address does not look complete. Please say it again.", { listenAfter: true, sticky: true });
         return true;
       }
+
       askInquiryStage("description");
       return true;
     }
 
     if (currentFlow.stage === "description") {
-      const value = String(raw).replace(/^\s*(my\s+)?(message|description|inquiry)\s+(is\s+)?/i, "").trim();
+      const value = String(raw)
+        .replace(/^\s*(my\s+)?(message|description|inquiry)\s+(is\s+)?/i, "")
+        .trim();
+
       if (value.length < 4) {
-        speakShort("Please give me a little more detail about what you need.", { listenAfter: true });
+        speakShort("Please give me a little more detail about what you need.", { listenAfter: true, sticky: true });
         return true;
       }
+
       inquiryField("description").value = value;
       inquiryConfirmation();
       return true;
@@ -830,18 +968,11 @@
 
     if (currentFlow.stage === "confirm") {
       if (/\b(confirm|submit|send|yes)\b/.test(command)) {
-        const form = currentFlow.form;
-        if (!form.reportValidity()) {
-          speakShort("One of the inquiry fields needs correction. Please review the form on screen.");
-          return true;
-        }
-        currentFlow = null;
-        speakShort("Sending your inquiry now.");
-        form.requestSubmit();
+        submitInquiry();
         return true;
       }
 
-      speakShort("Please say “confirm inquiry”, “change name”, “change phone”, “change email”, “change message”, or “cancel”.", { listenAfter: true });
+      speakShort("Tap Send inquiry, or say confirm inquiry, change name, change phone, change email, change message, or cancel.");
       return true;
     }
 
@@ -854,12 +985,14 @@
 
   async function readListings() {
     const found = await waitFor(".listing-list-card, .public-listing-card", 7000);
+
     if (!found) {
       speakShort("I could not find active listings on this page.");
       return;
     }
 
     const cards = listingCards();
+
     const descriptions = cards.slice(0, 6).map((card, index) => {
       const title = card.querySelector("h3")?.textContent?.trim() || `Listing ${index + 1}`;
       const price = card.querySelector(".listing-list-price, .listing-price")?.textContent?.trim() || "";
@@ -872,6 +1005,7 @@
 
   async function openListing(raw) {
     const found = await waitFor(".listing-list-card, .public-listing-card", 7000);
+
     if (!found) {
       speakShort("I could not find active listings on this page.");
       return;
@@ -879,12 +1013,14 @@
 
     const cards = listingCards();
     const command = normalize(raw);
+
     const target = command
       .replace(/\b(open|view|show|listing|property|the|first|next)\b/g, " ")
       .replace(/\s+/g, " ")
       .trim();
 
     let card = null;
+
     if (!target || /\bfirst\b/.test(command)) {
       card = cards[0];
     } else {
@@ -902,19 +1038,25 @@
     }
 
     card.scrollIntoView({ behavior: "smooth", block: "center" });
+
     if (highlighted) highlighted.classList.remove("voice-highlight");
     highlighted = card;
     card.classList.add("voice-highlight");
+
     speakShort(`Showing ${card.querySelector("h3")?.textContent?.trim() || "the listing"}.`);
   }
 
   function showResidentialType(type) {
     if (currentPage() !== "residential.html") {
-      navigate(`residential.html?type=${type.toLowerCase()}`, `homes for ${type === "Sale" ? "sale" : "lease"}`);
+      navigate(
+        `residential.html?type=${type.toLowerCase()}`,
+        `homes for ${type === "Sale" ? "sale" : "lease"}`
+      );
       return;
     }
 
     const button = document.querySelector(`[data-listing-type="${type}"]`);
+
     if (!button) {
       speakShort("I could not find that residential option.");
       return;
@@ -926,6 +1068,7 @@
 
   function readPage() {
     const main = document.querySelector("main");
+
     if (!main) {
       speakShort("There is no main page content to read.");
       return;
@@ -933,49 +1076,49 @@
 
     const clone = main.cloneNode(true);
     clone.querySelectorAll("form, button, dialog, script, style, .status-message").forEach(node => node.remove());
+
     speakLong(clone.textContent, "Reading this page");
   }
 
   function showHelp() {
-    openPanel();
-    speakShort(
-      "You can say: go to Insights, read the Buying article, list insights, what webinars are coming up, register for the next webinar, show homes for sale, read listings, request details, read this page, pause reading, resume reading, or stop reading."
+    speakLong(
+      "You can say: go to Insights. Read the Buying article. List insights. What webinars are coming up. Register for the next webinar. Show homes for sale. Read listings. Request details. Read this page. Pause reading. Resume reading. Or stop reading.",
+      "Voice help"
     );
   }
 
   function handleCommand(raw) {
     const command = normalize(raw);
+
     if (!command) {
-      setStatus("Please say or type a command.");
+      showBubble("Tap the microphone and try again.");
       return;
     }
-
-    openPanel();
 
     if (currentFlow?.type === "webinar" && handleWebinarFlow(raw, command)) return;
     if (currentFlow?.type === "inquiry" && handleInquiryFlow(raw, command)) return;
 
-    if (/\b(stop|cancel) reading\b/.test(command)) {
+    if (/\b(stop|cancel) reading\b/.test(command) || command === "stop") {
       stopReading();
       return;
     }
 
-    if (/\bpause reading\b/.test(command)) {
+    if (/\bpause( reading)?\b/.test(command)) {
       if (synth?.speaking) {
         synth.pause();
-        setStatus("Reading paused. Say “resume reading” when you are ready.");
+        showBubble("Reading paused. Tap the mic and say “resume”.", { sticky: true });
       } else {
-        setStatus("Nothing is being read right now.");
+        showBubble("Nothing is being read right now.");
       }
       return;
     }
 
-    if (/\bresume reading\b/.test(command)) {
+    if (/\bresume( reading)?\b/.test(command)) {
       if (synth?.paused) {
         synth.resume();
-        setStatus("Reading resumed.");
+        showBubble("Reading resumed.", { sticky: true });
       } else {
-        setStatus("There is no paused reading to resume.");
+        showBubble("There is no paused reading to resume.");
       }
       return;
     }
@@ -992,25 +1135,25 @@
 
     if (/\b(scroll down|page down)\b/.test(command)) {
       window.scrollBy({ top: Math.round(window.innerHeight * .75), behavior: "smooth" });
-      setStatus("Scrolling down.");
+      showBubble("Scrolling down.");
       return;
     }
 
     if (/\b(scroll up|page up)\b/.test(command)) {
       window.scrollBy({ top: -Math.round(window.innerHeight * .75), behavior: "smooth" });
-      setStatus("Scrolling up.");
+      showBubble("Scrolling up.");
       return;
     }
 
     if (/\b(go to top|scroll to top|top of page)\b/.test(command)) {
       window.scrollTo({ top: 0, behavior: "smooth" });
-      setStatus("Going to the top of the page.");
+      showBubble("Going to the top.");
       return;
     }
 
     if (/\b(go to bottom|scroll to bottom|bottom of page)\b/.test(command)) {
       window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "smooth" });
-      setStatus("Going to the bottom of the page.");
+      showBubble("Going to the bottom.");
       return;
     }
 
@@ -1095,7 +1238,7 @@
       }
     }
 
-    speakShort("I did not understand that command. Say “help” to hear examples, or type a command below.");
+    speakShort("I didn't understand that. Tap the microphone and say “help” for examples.");
   }
 
   async function processUrlActions() {
@@ -1111,9 +1254,8 @@
     url.searchParams.delete("voiceArticle");
     url.searchParams.delete("voiceMode");
     url.searchParams.delete("target");
-    history.replaceState(null, "", url.pathname + (url.search ? url.search : "") + url.hash);
 
-    openPanel();
+    history.replaceState(null, "", url.pathname + (url.search ? url.search : "") + url.hash);
 
     if (article) {
       await openInsight(article, mode === "read");
@@ -1140,40 +1282,32 @@
     }
   }
 
-  fab.addEventListener("click", () => {
-    if (panel.hidden) {
-      openPanel();
-      setStatus("Tap Speak and say a command, or type one below.");
-    } else {
-      closePanel();
-    }
-  });
-
-  close.addEventListener("click", closePanel);
-
-  speakButton.addEventListener("click", () => {
+  mic.addEventListener("click", () => {
     if (listening) {
       stopRecognition();
       return;
     }
+
     startListening();
   });
 
-  commandForm.addEventListener("submit", event => {
-    event.preventDefault();
-    const value = commandInput.value.trim();
-    if (!value) return;
-    setTranscript(value);
-    commandInput.value = "";
-    handleCommand(value);
+  confirmYes.addEventListener("click", () => {
+    const action = confirmAction;
+    if (typeof action === "function") action();
   });
 
-  root.querySelectorAll("[data-command]").forEach(button => {
-    button.addEventListener("click", () => {
-      const value = button.dataset.command || "";
-      setTranscript(value);
-      handleCommand(value);
-    });
+  confirmNo.addEventListener("click", flowCancel);
+
+  fallbackForm.addEventListener("submit", event => {
+    event.preventDefault();
+
+    const value = fallbackInput.value.trim();
+    if (!value) return;
+
+    fallbackInput.value = "";
+    hideFallback();
+    showBubble(`“${value}”`, { heard: true });
+    handleCommand(value);
   });
 
   processUrlActions();
