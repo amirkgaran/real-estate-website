@@ -35,3 +35,11 @@ if (menuToggle && navLinks) {
     });
   });
 }
+
+/* Load the Insights manager only on the private admin page. */
+if (document.body.classList.contains("admin-body") && !document.querySelector('script[data-admin-insights]')) {
+  const insightsAdminScript = document.createElement("script");
+  insightsAdminScript.src = "admin-insights.js";
+  insightsAdminScript.dataset.adminInsights = "true";
+  document.body.appendChild(insightsAdminScript);
+}
