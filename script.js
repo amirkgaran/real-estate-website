@@ -43,3 +43,22 @@ if (document.body.classList.contains("admin-body") && !document.querySelector('s
   insightsAdminScript.dataset.adminInsights = "true";
   document.body.appendChild(insightsAdminScript);
 }
+
+/* Load the public voice assistant everywhere except the private admin page. */
+if (!document.body.classList.contains("admin-body")) {
+  if (!document.querySelector('link[data-voice-assistant]')) {
+    const voiceStyles = document.createElement("link");
+    voiceStyles.rel = "stylesheet";
+    voiceStyles.href = "voice-assistant.css";
+    voiceStyles.dataset.voiceAssistant = "true";
+    document.head.appendChild(voiceStyles);
+  }
+
+  if (!document.querySelector('script[data-voice-assistant]')) {
+    const voiceScript = document.createElement("script");
+    voiceScript.src = "voice-assistant.js";
+    voiceScript.defer = true;
+    voiceScript.dataset.voiceAssistant = "true";
+    document.body.appendChild(voiceScript);
+  }
+}

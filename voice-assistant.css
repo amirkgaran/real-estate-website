@@ -1,0 +1,256 @@
+/* MyInvest public voice assistant */
+.voice-assistant {
+  position: fixed;
+  right: 22px;
+  bottom: 22px;
+  z-index: 9999;
+  font-family: inherit;
+}
+
+.voice-fab {
+  min-height: 50px;
+  border: 1px solid #171714;
+  background: #171714;
+  color: #f4f0e7;
+  padding: 0 17px;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  cursor: pointer;
+  font: inherit;
+  box-shadow: 0 7px 22px rgba(0,0,0,.15);
+}
+
+.voice-fab:hover,
+.voice-fab:focus-visible {
+  background: #f4f0e7;
+  color: #171714;
+  outline: 2px solid #171714;
+  outline-offset: 2px;
+}
+
+.voice-fab-icon {
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.voice-panel {
+  position: absolute;
+  right: 0;
+  bottom: 62px;
+  width: min(390px, calc(100vw - 30px));
+  max-height: min(620px, calc(100vh - 110px));
+  overflow: auto;
+  border: 1px solid #171714;
+  background: #f8f5ed;
+  color: #171714;
+  box-shadow: 0 16px 42px rgba(0,0,0,.18);
+}
+
+.voice-panel[hidden] {
+  display: none;
+}
+
+.voice-panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 18px 13px;
+  border-bottom: 1px solid rgba(23,23,20,.18);
+}
+
+.voice-panel-title {
+  margin: 0;
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: 1.45rem;
+  font-weight: 500;
+}
+
+.voice-panel-subtitle {
+  margin: 5px 0 0;
+  color: #69675f;
+  font-size: .82rem;
+  line-height: 1.45;
+}
+
+.voice-close {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  border: 1px solid rgba(23,23,20,.35);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: 1.35rem;
+}
+
+.voice-close:hover,
+.voice-close:focus-visible {
+  border-color: #171714;
+  outline: 2px solid #171714;
+  outline-offset: 2px;
+}
+
+.voice-panel-body {
+  padding: 18px;
+}
+
+.voice-status {
+  min-height: 50px;
+  margin: 0 0 14px;
+  padding: 12px 13px;
+  border-left: 3px solid #9a7b3f;
+  background: rgba(154,123,63,.09);
+  font-size: .9rem;
+  line-height: 1.55;
+}
+
+.voice-transcript {
+  margin: -4px 0 14px;
+  color: #69675f;
+  font-size: .78rem;
+  line-height: 1.4;
+}
+
+.voice-transcript:empty {
+  display: none;
+}
+
+.voice-speak-button {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid #171714;
+  background: #171714;
+  color: #f4f0e7;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+}
+
+.voice-speak-button.listening {
+  background: #f4f0e7;
+  color: #171714;
+}
+
+.voice-speak-button:disabled {
+  opacity: .52;
+  cursor: not-allowed;
+}
+
+.voice-command-form {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) auto;
+  gap: 8px;
+  margin-top: 11px;
+}
+
+.voice-command-form input {
+  min-width: 0;
+  min-height: 44px;
+  border: 1px solid rgba(23,23,20,.45);
+  background: #fff;
+  color: #171714;
+  padding: 9px 11px;
+  font: inherit;
+  font-size: 16px;
+}
+
+.voice-command-form button {
+  min-height: 44px;
+  border: 1px solid #171714;
+  background: transparent;
+  color: #171714;
+  padding: 0 14px;
+  cursor: pointer;
+  font: inherit;
+}
+
+.voice-command-form button:hover,
+.voice-command-form button:focus-visible,
+.voice-command-form input:focus-visible {
+  outline: 2px solid #171714;
+  outline-offset: 2px;
+}
+
+.voice-examples {
+  margin-top: 17px;
+  padding-top: 15px;
+  border-top: 1px solid rgba(23,23,20,.16);
+}
+
+.voice-examples-title {
+  margin: 0 0 9px;
+  font-size: .75rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.voice-example-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.voice-example {
+  border: 1px solid rgba(23,23,20,.35);
+  background: transparent;
+  color: #171714;
+  padding: 7px 9px;
+  cursor: pointer;
+  font: inherit;
+  font-size: .78rem;
+}
+
+.voice-example:hover,
+.voice-example:focus-visible {
+  border-color: #171714;
+  background: #171714;
+  color: #f4f0e7;
+  outline: none;
+}
+
+.voice-browser-note {
+  margin: 14px 0 0;
+  color: #69675f;
+  font-size: .72rem;
+  line-height: 1.45;
+}
+
+.voice-highlight {
+  outline: 3px solid #9a7b3f !important;
+  outline-offset: 5px;
+}
+
+@media (max-width: 600px) {
+  .voice-assistant {
+    right: 14px;
+    bottom: 14px;
+  }
+
+  .voice-fab {
+    min-height: 48px;
+    padding: 0 14px;
+  }
+
+  .voice-panel {
+    right: 0;
+    bottom: 58px;
+    width: calc(100vw - 28px);
+    max-height: calc(100vh - 92px);
+  }
+
+  .voice-panel-header,
+  .voice-panel-body {
+    padding: 15px;
+  }
+
+  .voice-command-form {
+    grid-template-columns: 1fr;
+  }
+
+  .voice-command-form button {
+    width: 100%;
+  }
+}

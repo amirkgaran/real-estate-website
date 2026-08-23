@@ -1,0 +1,1180 @@
+(() => {
+  if (window.__MYINVEST_VOICE_ASSISTANT__) return;
+  window.__MYINVEST_VOICE_ASSISTANT__ = true;
+
+  const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const synth = window.speechSynthesis || null;
+
+  const PAGE_MAP = [
+    { phrases: ["multi residential", "multi-residential"], url: "multi-residential.html", label: "Multi Residential" },
+    { phrases: ["financial market", "financial markets"], url: "financial-market.html", label: "Financial Market" },
+    { phrases: ["residential"], url: "residential.html", label: "Residential" },
+    { phrases: ["commercial"], url: "commercial.html", label: "Commercial" },
+    { phrases: ["webinar", "webinars"], url: "webinars.html", label: "Webinars" },
+    { phrases: ["insight", "insights", "education", "educational", "articles"], url: "insights.html", label: "Insights" },
+    { phrases: ["about", "about amir"], url: "about.html", label: "About" },
+    { phrases: ["contact", "contact amir"], url: "contact.html", label: "Contact" },
+    { phrases: ["home", "home page"], url: "index.html", label: "Home" }
+  ];
+
+  let recognition = null;
+  let listening = false;
+  let currentFlow = null;
+  let readQueue = [];
+  let readIndex = 0;
+  let reading = false;
+  let highlighted = null;
+
+  const root = document.createElement("div");
+  root.className = "voice-assistant";
+  root.innerHTML = `
+    <button id="voiceFab" class="voice-fab" type="button" aria-expanded="false" aria-controls="voicePanel">
+      <span class="voice-fab-icon" aria-hidden="true">🎙</span>
+      <span>Voice</span>
+    </button>
+
+    <section id="voicePanel" class="voice-panel" hidden aria-label="MyInvest voice assistant">
+      <div class="voice-panel-header">
+        <div>
+          <h2 class="voice-panel-title">MyInvest Voice Assistant</h2>
+          <p class="voice-panel-subtitle">Navigate, listen, register and request information.</p>
+        </div>
+        <button id="voiceClose" class="voice-close" type="button" aria-label="Close voice assistant">×</button>
+      </div>
+
+      <div class="voice-panel-body">
+        <p id="voiceStatus" class="voice-status" aria-live="polite">
+          Tap “Speak” and say a command, or type one below.
+        </p>
+        <p id="voiceTranscript" class="voice-transcript"></p>
+
+        <button id="voiceSpeak" class="voice-speak-button" type="button">🎙 Speak</button>
+
+        <form id="voiceCommandForm" class="voice-command-form">
+          <input id="voiceCommandInput" type="text" autocomplete="off" aria-label="Type a voice assistant command" placeholder="Example: read the Buying article">
+          <button type="submit">Go</button>
+        </form>
+
+        <div class="voice-examples">
+          <p class="voice-examples-title">Try saying</p>
+          <div class="voice-example-grid">
+            <button class="voice-example" type="button" data-command="go to insights">Go to Insights</button>
+            <button class="voice-example" type="button" data-command="read the buying article">Read Buying</button>
+            <button class="voice-example" type="button" data-command="what webinars are coming up">Upcoming webinars</button>
+            <button class="voice-example" type="button" data-command="register for the next webinar">Register for webinar</button>
+            <button class="voice-example" type="button" data-command="show homes for sale">Homes for sale</button>
+            <button class="voice-example" type="button" data-command="request details">Request details</button>
+          </div>
+        </div>
+
+        <p id="voiceBrowserNote" class="voice-browser-note">
+          Voice recognition is provided by your browser. You control the microphone permission.
+        </p>
+      </div>
+    </section>
+  `;
+  document.body.appendChild(root);
+
+  const fab = root.querySelector("#voiceFab");
+  const panel = root.querySelector("#voicePanel");
+  const close = root.querySelector("#voiceClose");
+  const speakButton = root.querySelector("#voiceSpeak");
+  const status = root.querySelector("#voiceStatus");
+  const transcript = root.querySelector("#voiceTranscript");
+  const commandForm = root.querySelector("#voiceCommandForm");
+  const commandInput = root.querySelector("#voiceCommandInput");
+  const browserNote = root.querySelector("#voiceBrowserNote");
+
+  function normalize(value = "") {
+    return String(value)
+      .toLowerCase()
+      .replace(/[’']/g, "")
+      .replace(/[^a-z0-9@.+-]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function setStatus(message) {
+    status.textContent = message;
+  }
+
+  function setTranscript(message = "") {
+    transcript.textContent = message ? `Heard: “${message}”` : "";
+  }
+
+  function openPanel() {
+    panel.hidden = false;
+    fab.setAttribute("aria-expanded", "true");
+  }
+
+  function closePanel() {
+    panel.hidden = true;
+    fab.setAttribute("aria-expanded", "false");
+  }
+
+  function currentPage() {
+    const file = window.location.pathname.split("/").pop();
+    return file || "index.html";
+  }
+
+  function stopRecognition() {
+    if (!recognition || !listening) return;
+    try { recognition.stop(); } catch (_) {}
+  }
+
+  function stopReading(update = true) {
+    readQueue = [];
+    readIndex = 0;
+    reading = false;
+    if (synth) synth.cancel();
+    if (highlighted) {
+      highlighted.classList.remove("voice-highlight");
+      highlighted = null;
+    }
+    if (update) setStatus("Reading stopped.");
+  }
+
+  function chunkText(text, max = 230) {
+    const clean = String(text || "").replace(/\s+/g, " ").trim();
+    if (!clean) return [];
+    const sentences = clean.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [clean];
+    const chunks = [];
+    let current = "";
+
+    for (const sentenceRaw of sentences) {
+      const sentence = sentenceRaw.trim();
+      if (!sentence) continue;
+
+      if ((current + " " + sentence).trim().length <= max) {
+        current = (current + " " + sentence).trim();
+        continue;
+      }
+
+      if (current) chunks.push(current);
+
+      if (sentence.length <= max) {
+        current = sentence;
+        continue;
+      }
+
+      const words = sentence.split(/\s+/);
+      current = "";
+      for (const word of words) {
+        if ((current + " " + word).trim().length > max && current) {
+          chunks.push(current);
+          current = word;
+        } else {
+          current = (current + " " + word).trim();
+        }
+      }
+    }
+
+    if (current) chunks.push(current);
+    return chunks;
+  }
+
+  function speakShort(message, { listenAfter = false } = {}) {
+    setStatus(message);
+
+    if (!synth || !window.SpeechSynthesisUtterance) {
+      if (listenAfter) window.setTimeout(startListening, 250);
+      return;
+    }
+
+    stopReading(false);
+    stopRecognition();
+    const utterance = new SpeechSynthesisUtterance(message);
+    utterance.lang = "en-CA";
+    utterance.rate = 0.96;
+    utterance.onend = () => {
+      if (listenAfter) window.setTimeout(startListening, 180);
+    };
+    utterance.onerror = () => {
+      if (listenAfter) window.setTimeout(startListening, 180);
+    };
+    synth.speak(utterance);
+  }
+
+  function speakLong(text, label = "Reading") {
+    if (!synth || !window.SpeechSynthesisUtterance) {
+      setStatus("Text-to-speech is not available in this browser.");
+      return;
+    }
+
+    stopReading(false);
+    stopRecognition();
+    readQueue = chunkText(text);
+    readIndex = 0;
+    reading = readQueue.length > 0;
+
+    if (!reading) {
+      setStatus("There is nothing to read here.");
+      return;
+    }
+
+    setStatus(`${label}. Say “pause reading”, “resume reading” or “stop reading”.`);
+
+    const next = () => {
+      if (!reading || readIndex >= readQueue.length) {
+        reading = false;
+        readQueue = [];
+        if (highlighted) {
+          highlighted.classList.remove("voice-highlight");
+          highlighted = null;
+        }
+        setStatus("Finished reading.");
+        return;
+      }
+
+      const utterance = new SpeechSynthesisUtterance(readQueue[readIndex++]);
+      utterance.lang = "en-CA";
+      utterance.rate = 0.94;
+      utterance.onend = next;
+      utterance.onerror = next;
+      synth.speak(utterance);
+    };
+
+    next();
+  }
+
+  function startListening() {
+    openPanel();
+
+    if (!Recognition) {
+      setStatus("Voice input is not supported in this browser. You can still type commands below. Chrome or Edge usually provides the best support.");
+      commandInput.focus();
+      return;
+    }
+
+    if (listening) return;
+
+    if (synth?.speaking && !synth.paused) {
+      synth.pause();
+    }
+
+    try {
+      recognition.start();
+    } catch (error) {
+      console.warn("Voice recognition could not start:", error);
+      setStatus("I could not start the microphone. Tap Speak again, or type your command.");
+    }
+  }
+
+  if (Recognition) {
+    recognition = new Recognition();
+    recognition.lang = "en-CA";
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.addEventListener("start", () => {
+      listening = true;
+      speakButton.classList.add("listening");
+      speakButton.textContent = "Listening…";
+      setStatus("Listening…");
+    });
+
+    recognition.addEventListener("result", event => {
+      const result = event.results?.[0]?.[0]?.transcript?.trim() || "";
+      setTranscript(result);
+      handleCommand(result);
+    });
+
+    recognition.addEventListener("error", event => {
+      if (event.error === "aborted") return;
+      if (event.error === "not-allowed" || event.error === "service-not-allowed") {
+        setStatus("Microphone access was blocked. Allow microphone access for myinvest.ca, or type a command below.");
+      } else if (event.error === "no-speech") {
+        setStatus("I did not hear anything. Tap Speak and try again.");
+      } else {
+        setStatus("Voice recognition had a problem. Please try again or type your command.");
+      }
+    });
+
+    recognition.addEventListener("end", () => {
+      listening = false;
+      speakButton.classList.remove("listening");
+      speakButton.textContent = "🎙 Speak";
+    });
+  } else {
+    speakButton.disabled = true;
+    speakButton.textContent = "Voice input unavailable";
+    browserNote.textContent = "This browser does not expose speech recognition. Typed commands and text-to-speech can still work.";
+  }
+
+  function waitFor(selector, timeout = 9000) {
+    return new Promise(resolve => {
+      const existing = document.querySelector(selector);
+      if (existing) {
+        resolve(existing);
+        return;
+      }
+
+      const observer = new MutationObserver(() => {
+        const found = document.querySelector(selector);
+        if (!found) return;
+        observer.disconnect();
+        clearTimeout(timer);
+        resolve(found);
+      });
+
+      observer.observe(document.documentElement, { childList: true, subtree: true });
+      const timer = setTimeout(() => {
+        observer.disconnect();
+        resolve(null);
+      }, timeout);
+    });
+  }
+
+  function navigate(url, label) {
+    setStatus(`Opening ${label}…`);
+    window.location.href = url;
+  }
+
+  function cleanTarget(text, words) {
+    let out = normalize(text);
+    for (const word of words) {
+      out = out.replace(new RegExp(`\\b${word}\\b`, "g"), " ");
+    }
+    return out.replace(/\s+/g, " ").trim();
+  }
+
+  function visibleInsightCard() {
+    const cards = [...document.querySelectorAll(".insight-card")];
+    if (!cards.length) return null;
+
+    const center = window.innerHeight * 0.42;
+    return cards
+      .map(card => ({ card, distance: Math.abs(card.getBoundingClientRect().top - center) }))
+      .sort((a, b) => a.distance - b.distance)[0]?.card || cards[0];
+  }
+
+  function findInsightCard(target = "") {
+    const cards = [...document.querySelectorAll(".insight-card")];
+    if (!cards.length) return null;
+    const wanted = normalize(target);
+
+    if (!wanted || ["this", "current", "article", "insight"].includes(wanted)) {
+      return visibleInsightCard();
+    }
+
+    return cards.find(card => {
+      const hay = normalize([
+        card.id,
+        card.querySelector(".eyebrow")?.textContent,
+        card.querySelector("h2")?.textContent
+      ].filter(Boolean).join(" "));
+      return hay.includes(wanted) || wanted.includes(hay);
+    }) || cards.find(card => normalize(card.textContent).includes(wanted));
+  }
+
+  async function openInsight(target, read = false) {
+    if (currentPage() !== "insights.html") {
+      const params = new URLSearchParams();
+      params.set("voiceArticle", target || "this");
+      params.set("voiceMode", read ? "read" : "open");
+      navigate(`insights.html?${params.toString()}`, "Insights");
+      return;
+    }
+
+    const found = await waitFor(".insight-card");
+    if (!found) {
+      speakShort("I could not find any published insight articles.");
+      return;
+    }
+
+    const card = findInsightCard(target);
+    if (!card) {
+      speakShort(`I could not find an insight matching ${target}. Say “list insights” to hear the available topics.`);
+      return;
+    }
+
+    card.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (highlighted) highlighted.classList.remove("voice-highlight");
+    highlighted = card;
+    card.classList.add("voice-highlight");
+
+    const title = card.querySelector("h2")?.textContent?.trim() || "this article";
+    setStatus(`Opened “${title}”.`);
+
+    if (read) {
+      const category = card.querySelector(".eyebrow")?.textContent?.trim() || "";
+      const body = card.querySelector(".insight-body")?.textContent?.trim() || card.textContent.trim();
+      speakLong(`${category}. ${title}. ${body}`, `Reading ${title}`);
+    }
+  }
+
+  async function listInsights() {
+    if (currentPage() !== "insights.html") {
+      navigate("insights.html?voiceAction=listInsights", "Insights");
+      return;
+    }
+
+    const found = await waitFor(".insight-card");
+    if (!found) {
+      speakShort("I could not find any published insight articles.");
+      return;
+    }
+
+    const cards = [...document.querySelectorAll(".insight-card")];
+    const names = cards.map(card => {
+      const category = card.querySelector(".eyebrow")?.textContent?.trim();
+      const title = card.querySelector("h2")?.textContent?.trim();
+      return category && title ? `${category}: ${title}` : title || category;
+    }).filter(Boolean);
+
+    speakLong(`There are ${names.length} insight topics. ${names.join(". ")}.`, "Listing insight topics");
+  }
+
+  function webinarTargetFromCommand(raw) {
+    let value = normalize(raw)
+      .replace(/\b(register|registration|reserve|sign up|signup|me|please|for|the|a|an)\b/g, " ")
+      .replace(/\bwebinar(s)?\b/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (!value || value === "next" || value === "upcoming") return "next";
+    return value;
+  }
+
+  function findWebinarButton(target = "next") {
+    const buttons = [...document.querySelectorAll(".webinar-register-button[data-webinar-id]")];
+    if (!buttons.length) return null;
+
+    const wanted = normalize(target);
+    if (!wanted || wanted === "next" || wanted === "first" || wanted === "upcoming") return buttons[0];
+
+    return buttons.find(button => {
+      const card = button.closest(".webinar-card");
+      const title = normalize(card?.querySelector("h3")?.textContent || "");
+      return title.includes(wanted) || wanted.includes(title);
+    }) || null;
+  }
+
+  function webinarSummary(button) {
+    const card = button?.closest(".webinar-card");
+    if (!card) return "the selected webinar";
+    const title = card.querySelector("h3")?.textContent?.trim() || "the selected webinar";
+    const date = card.querySelector(".webinar-date")?.textContent?.trim() || "";
+    const time = card.querySelector(".webinar-time")?.textContent?.trim() || "";
+    return [title, date, time].filter(Boolean).join(", ");
+  }
+
+  async function beginWebinarRegistration(target = "next") {
+    if (currentPage() !== "webinars.html") {
+      const params = new URLSearchParams();
+      params.set("voiceAction", "register");
+      params.set("target", target || "next");
+      navigate(`webinars.html?${params.toString()}`, "Webinars");
+      return;
+    }
+
+    const found = await waitFor(".webinar-register-button[data-webinar-id]");
+    if (!found) {
+      speakShort("There are no published upcoming webinars available for registration right now.");
+      return;
+    }
+
+    const button = findWebinarButton(target);
+    if (!button) {
+      speakShort(`I could not match that webinar. Say “what webinars are coming up” to hear the available webinars.`);
+      return;
+    }
+
+    button.click();
+    await new Promise(resolve => setTimeout(resolve, 120));
+
+    const form = document.getElementById("webinarRegistrationForm");
+    if (!form) {
+      speakShort("I could not open the webinar registration form.");
+      return;
+    }
+
+    currentFlow = {
+      type: "webinar",
+      stage: "name",
+      form
+    };
+
+    speakShort(`Let's register you for ${webinarSummary(button)}. What name should I use?`, { listenAfter: true });
+  }
+
+  async function listWebinars() {
+    if (currentPage() !== "webinars.html") {
+      navigate("webinars.html?voiceAction=listWebinars", "Webinars");
+      return;
+    }
+
+    const found = await waitFor(".webinar-card");
+    if (!found) {
+      speakShort("There are no published upcoming webinars right now.");
+      return;
+    }
+
+    const cards = [...document.querySelectorAll(".webinar-card")];
+    const descriptions = cards.slice(0, 6).map((card, index) => {
+      const title = card.querySelector("h3")?.textContent?.trim() || `Webinar ${index + 1}`;
+      const date = card.querySelector(".webinar-date")?.textContent?.trim() || "";
+      const time = card.querySelector(".webinar-time")?.textContent?.trim() || "";
+      return `${title}, ${date}, at ${time}`;
+    });
+
+    speakLong(`I found ${cards.length} upcoming webinar${cards.length === 1 ? "" : "s"}. ${descriptions.join(". ")}.`, "Reading upcoming webinars");
+  }
+
+  function normalizeSpokenEmail(raw) {
+    return String(raw || "")
+      .toLowerCase()
+      .replace(/\bat sign\b/g, "@")
+      .replace(/\bat\b/g, "@")
+      .replace(/\bdot\b/g, ".")
+      .replace(/\bperiod\b/g, ".")
+      .replace(/\bunderscore\b/g, "_")
+      .replace(/\bhyphen\b/g, "-")
+      .replace(/\bdash\b/g, "-")
+      .replace(/\s+/g, "")
+      .replace(/,+/g, ".");
+  }
+
+  function normalizeSpokenPhone(raw) {
+    const words = {
+      zero: "0", oh: "0", one: "1", two: "2", to: "2", three: "3",
+      four: "4", for: "4", five: "5", six: "6", seven: "7",
+      eight: "8", ate: "8", nine: "9"
+    };
+
+    let value = String(raw || "").toLowerCase();
+    value = value.replace(/\b(zero|oh|one|two|to|three|four|for|five|six|seven|eight|ate|nine)\b/g, match => words[match] || match);
+    return value.replace(/[^\d+]/g, "");
+  }
+
+  function spokenEmail(email) {
+    return String(email || "").replace("@", " at ").replace(/\./g, " dot ");
+  }
+
+  function flowCancel() {
+    if (!currentFlow) return;
+    const type = currentFlow.type;
+    if (type === "webinar") {
+      const dialog = document.getElementById("webinarRegistrationModal");
+      if (dialog?.open && typeof dialog.close === "function") dialog.close();
+    } else if (type === "inquiry") {
+      const dialog = document.getElementById("inquiryModal");
+      if (dialog?.open && typeof dialog.close === "function") dialog.close();
+    }
+    currentFlow = null;
+    speakShort("Cancelled. Nothing was submitted.");
+  }
+
+  function fieldForWebinar(name) {
+    const map = {
+      name: document.getElementById("registrationName"),
+      email: document.getElementById("registrationEmail"),
+      phone: document.getElementById("registrationPhone")
+    };
+    return map[name];
+  }
+
+  function askWebinarStage(stage) {
+    if (!currentFlow || currentFlow.type !== "webinar") return;
+    currentFlow.stage = stage;
+    const prompts = {
+      name: "What name should I use?",
+      email: "What email address should I use? You can say something like name at gmail dot com.",
+      phone: "What contact number should I use?"
+    };
+    speakShort(prompts[stage], { listenAfter: true });
+  }
+
+  function webinarConfirmation() {
+    const name = fieldForWebinar("name")?.value?.trim() || "";
+    const email = fieldForWebinar("email")?.value?.trim() || "";
+    const phone = fieldForWebinar("phone")?.value?.trim() || "";
+    currentFlow.stage = "confirm";
+    speakShort(
+      `I have ${name}, email ${spokenEmail(email)}, and phone ${phone}. Say “confirm registration” to submit, or say “change name”, “change email”, “change phone”, or “cancel”.`,
+      { listenAfter: true }
+    );
+  }
+
+  function watchWebinarResult() {
+    const message = document.getElementById("webinarRegistrationMessage");
+    if (!message) return;
+
+    let done = false;
+    const announce = () => {
+      if (done) return;
+      const text = message.textContent?.trim() || "";
+      if (!text || /registering/i.test(text)) return;
+      done = true;
+      observer.disconnect();
+      speakShort(text);
+    };
+
+    const observer = new MutationObserver(announce);
+    observer.observe(message, { childList: true, subtree: true, characterData: true });
+    setTimeout(() => {
+      if (!done) observer.disconnect();
+    }, 15000);
+  }
+
+  function handleWebinarFlow(raw, command) {
+    if (/\b(cancel|never mind|nevermind)\b/.test(command)) {
+      flowCancel();
+      return true;
+    }
+
+    if (/\bchange name\b/.test(command)) {
+      askWebinarStage("name");
+      return true;
+    }
+    if (/\bchange email\b/.test(command)) {
+      askWebinarStage("email");
+      return true;
+    }
+    if (/\bchange (phone|number|contact)\b/.test(command)) {
+      askWebinarStage("phone");
+      return true;
+    }
+
+    if (currentFlow.stage === "name") {
+      const value = String(raw).replace(/^\s*(my\s+)?name\s+(is\s+)?/i, "").trim();
+      if (value.length < 2) {
+        speakShort("I did not catch the name. Please say the name again.", { listenAfter: true });
+        return true;
+      }
+      fieldForWebinar("name").value = value;
+      askWebinarStage("email");
+      return true;
+    }
+
+    if (currentFlow.stage === "email") {
+      const value = normalizeSpokenEmail(raw.replace(/^\s*(my\s+)?email(\s+address)?\s+(is\s+)?/i, ""));
+      const field = fieldForWebinar("email");
+      field.value = value;
+      if (!field.checkValidity()) {
+        speakShort("That does not look like a complete email address. Please say it again, for example name at gmail dot com.", { listenAfter: true });
+        return true;
+      }
+      askWebinarStage("phone");
+      return true;
+    }
+
+    if (currentFlow.stage === "phone") {
+      const value = normalizeSpokenPhone(raw.replace(/^\s*(my\s+)?(phone|contact|number)(\s+number)?\s+(is\s+)?/i, ""));
+      if (value.replace(/\D/g, "").length < 7) {
+        speakShort("I did not catch a complete phone number. Please say the number again.", { listenAfter: true });
+        return true;
+      }
+      fieldForWebinar("phone").value = value;
+      webinarConfirmation();
+      return true;
+    }
+
+    if (currentFlow.stage === "confirm") {
+      if (/\b(confirm|submit|yes|register)\b/.test(command)) {
+        const form = currentFlow.form;
+        if (!form.reportValidity()) {
+          speakShort("One of the registration fields needs correction. Please review the form on screen.");
+          return true;
+        }
+        currentFlow = null;
+        watchWebinarResult();
+        speakShort("Submitting your webinar registration now.");
+        form.requestSubmit();
+        return true;
+      }
+
+      speakShort("Please say “confirm registration”, “change name”, “change email”, “change phone”, or “cancel”.", { listenAfter: true });
+      return true;
+    }
+
+    return false;
+  }
+
+  function visibleInquiryForm() {
+    const modal = document.getElementById("inquiryModal");
+    if (modal?.open) return modal.querySelector("#inquiryForm");
+    const form = document.getElementById("inquiryForm");
+    if (form && !modal?.contains(form)) return form;
+    return form;
+  }
+
+  async function beginInquiry() {
+    if (currentPage() === "contact.html") {
+      const form = await waitFor("#inquiryForm");
+      if (!form) {
+        speakShort("I could not find the contact form.");
+        return;
+      }
+      form.scrollIntoView({ behavior: "smooth", block: "center" });
+      currentFlow = { type: "inquiry", stage: "name", form };
+      speakShort("I can help prepare your inquiry. What name should I use?", { listenAfter: true });
+      return;
+    }
+
+    const modal = await waitFor("#inquiryModal");
+    if (modal) {
+      const opener = document.querySelector("[data-inquiry-open]");
+      if (opener) opener.click();
+      await new Promise(resolve => setTimeout(resolve, 100));
+      const form = visibleInquiryForm();
+      if (form) {
+        currentFlow = { type: "inquiry", stage: "name", form };
+        speakShort("I can help prepare your request. What name should I use?", { listenAfter: true });
+        return;
+      }
+    }
+
+    navigate("contact.html?voiceAction=inquiry", "Contact");
+  }
+
+  function inquiryField(name) {
+    const form = currentFlow?.form;
+    if (!form) return null;
+    const selectors = {
+      name: 'input[name="Name"]',
+      phone: 'input[name="Contact number"]',
+      email: 'input[name="Email"]',
+      description: 'textarea[name="Brief description"]'
+    };
+    return form.querySelector(selectors[name]);
+  }
+
+  function askInquiryStage(stage) {
+    if (!currentFlow || currentFlow.type !== "inquiry") return;
+    currentFlow.stage = stage;
+    const prompts = {
+      name: "What name should I use?",
+      phone: "What contact number should I use?",
+      email: "What email address should I use?",
+      description: "Briefly, what would you like Amir to help you with?"
+    };
+    speakShort(prompts[stage], { listenAfter: true });
+  }
+
+  function inquiryConfirmation() {
+    const name = inquiryField("name")?.value?.trim() || "";
+    const email = inquiryField("email")?.value?.trim() || "";
+    const description = inquiryField("description")?.value?.trim() || "";
+    currentFlow.stage = "confirm";
+    speakShort(
+      `Your inquiry is prepared for ${name}, email ${spokenEmail(email)}. Your message begins: ${description.slice(0, 120)}. Say “confirm inquiry” to send it, or say “change name”, “change phone”, “change email”, “change message”, or “cancel”.`,
+      { listenAfter: true }
+    );
+  }
+
+  function handleInquiryFlow(raw, command) {
+    if (/\b(cancel|never mind|nevermind)\b/.test(command)) {
+      flowCancel();
+      return true;
+    }
+
+    const changes = [
+      ["name", /\bchange name\b/],
+      ["phone", /\bchange (phone|number|contact)\b/],
+      ["email", /\bchange email\b/],
+      ["description", /\bchange (message|description|inquiry)\b/]
+    ];
+
+    for (const [stage, pattern] of changes) {
+      if (pattern.test(command)) {
+        askInquiryStage(stage);
+        return true;
+      }
+    }
+
+    if (currentFlow.stage === "name") {
+      const value = String(raw).replace(/^\s*(my\s+)?name\s+(is\s+)?/i, "").trim();
+      if (value.length < 2) {
+        speakShort("I did not catch the name. Please say it again.", { listenAfter: true });
+        return true;
+      }
+      inquiryField("name").value = value;
+      askInquiryStage("phone");
+      return true;
+    }
+
+    if (currentFlow.stage === "phone") {
+      const value = normalizeSpokenPhone(raw);
+      if (value.replace(/\D/g, "").length < 7) {
+        speakShort("I did not catch a complete phone number. Please say it again.", { listenAfter: true });
+        return true;
+      }
+      inquiryField("phone").value = value;
+      askInquiryStage("email");
+      return true;
+    }
+
+    if (currentFlow.stage === "email") {
+      const value = normalizeSpokenEmail(raw);
+      const field = inquiryField("email");
+      field.value = value;
+      if (!field.checkValidity()) {
+        speakShort("That email address does not look complete. Please say it again.", { listenAfter: true });
+        return true;
+      }
+      askInquiryStage("description");
+      return true;
+    }
+
+    if (currentFlow.stage === "description") {
+      const value = String(raw).replace(/^\s*(my\s+)?(message|description|inquiry)\s+(is\s+)?/i, "").trim();
+      if (value.length < 4) {
+        speakShort("Please give me a little more detail about what you need.", { listenAfter: true });
+        return true;
+      }
+      inquiryField("description").value = value;
+      inquiryConfirmation();
+      return true;
+    }
+
+    if (currentFlow.stage === "confirm") {
+      if (/\b(confirm|submit|send|yes)\b/.test(command)) {
+        const form = currentFlow.form;
+        if (!form.reportValidity()) {
+          speakShort("One of the inquiry fields needs correction. Please review the form on screen.");
+          return true;
+        }
+        currentFlow = null;
+        speakShort("Sending your inquiry now.");
+        form.requestSubmit();
+        return true;
+      }
+
+      speakShort("Please say “confirm inquiry”, “change name”, “change phone”, “change email”, “change message”, or “cancel”.", { listenAfter: true });
+      return true;
+    }
+
+    return false;
+  }
+
+  function listingCards() {
+    return [...document.querySelectorAll(".listing-list-card, .public-listing-card")];
+  }
+
+  async function readListings() {
+    const found = await waitFor(".listing-list-card, .public-listing-card", 7000);
+    if (!found) {
+      speakShort("I could not find active listings on this page.");
+      return;
+    }
+
+    const cards = listingCards();
+    const descriptions = cards.slice(0, 6).map((card, index) => {
+      const title = card.querySelector("h3")?.textContent?.trim() || `Listing ${index + 1}`;
+      const price = card.querySelector(".listing-list-price, .listing-price")?.textContent?.trim() || "";
+      const location = card.querySelector(".listing-list-location, .listing-location")?.textContent?.trim() || "";
+      return [title, price, location].filter(Boolean).join(", ");
+    });
+
+    speakLong(`I found ${cards.length} active listing${cards.length === 1 ? "" : "s"}. ${descriptions.join(". ")}.`, "Reading listings");
+  }
+
+  async function openListing(raw) {
+    const found = await waitFor(".listing-list-card, .public-listing-card", 7000);
+    if (!found) {
+      speakShort("I could not find active listings on this page.");
+      return;
+    }
+
+    const cards = listingCards();
+    const command = normalize(raw);
+    const target = command
+      .replace(/\b(open|view|show|listing|property|the|first|next)\b/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    let card = null;
+    if (!target || /\bfirst\b/.test(command)) {
+      card = cards[0];
+    } else {
+      card = cards.find(item => normalize(item.textContent).includes(target));
+    }
+
+    if (!card) {
+      speakShort("I could not match that property. Say “read listings” to hear the available listings.");
+      return;
+    }
+
+    if (card.matches("a[href]")) {
+      window.location.href = card.href;
+      return;
+    }
+
+    card.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (highlighted) highlighted.classList.remove("voice-highlight");
+    highlighted = card;
+    card.classList.add("voice-highlight");
+    speakShort(`Showing ${card.querySelector("h3")?.textContent?.trim() || "the listing"}.`);
+  }
+
+  function showResidentialType(type) {
+    if (currentPage() !== "residential.html") {
+      navigate(`residential.html?type=${type.toLowerCase()}`, `homes for ${type === "Sale" ? "sale" : "lease"}`);
+      return;
+    }
+
+    const button = document.querySelector(`[data-listing-type="${type}"]`);
+    if (!button) {
+      speakShort("I could not find that residential option.");
+      return;
+    }
+
+    button.click();
+    speakShort(`Showing homes for ${type === "Sale" ? "sale" : "lease"}.`);
+  }
+
+  function readPage() {
+    const main = document.querySelector("main");
+    if (!main) {
+      speakShort("There is no main page content to read.");
+      return;
+    }
+
+    const clone = main.cloneNode(true);
+    clone.querySelectorAll("form, button, dialog, script, style, .status-message").forEach(node => node.remove());
+    speakLong(clone.textContent, "Reading this page");
+  }
+
+  function showHelp() {
+    openPanel();
+    speakShort(
+      "You can say: go to Insights, read the Buying article, list insights, what webinars are coming up, register for the next webinar, show homes for sale, read listings, request details, read this page, pause reading, resume reading, or stop reading."
+    );
+  }
+
+  function handleCommand(raw) {
+    const command = normalize(raw);
+    if (!command) {
+      setStatus("Please say or type a command.");
+      return;
+    }
+
+    openPanel();
+
+    if (currentFlow?.type === "webinar" && handleWebinarFlow(raw, command)) return;
+    if (currentFlow?.type === "inquiry" && handleInquiryFlow(raw, command)) return;
+
+    if (/\b(stop|cancel) reading\b/.test(command)) {
+      stopReading();
+      return;
+    }
+
+    if (/\bpause reading\b/.test(command)) {
+      if (synth?.speaking) {
+        synth.pause();
+        setStatus("Reading paused. Say “resume reading” when you are ready.");
+      } else {
+        setStatus("Nothing is being read right now.");
+      }
+      return;
+    }
+
+    if (/\bresume reading\b/.test(command)) {
+      if (synth?.paused) {
+        synth.resume();
+        setStatus("Reading resumed.");
+      } else {
+        setStatus("There is no paused reading to resume.");
+      }
+      return;
+    }
+
+    if (/\b(help|what can i say|voice commands|commands)\b/.test(command)) {
+      showHelp();
+      return;
+    }
+
+    if (/\b(go back|back)\b/.test(command)) {
+      history.back();
+      return;
+    }
+
+    if (/\b(scroll down|page down)\b/.test(command)) {
+      window.scrollBy({ top: Math.round(window.innerHeight * .75), behavior: "smooth" });
+      setStatus("Scrolling down.");
+      return;
+    }
+
+    if (/\b(scroll up|page up)\b/.test(command)) {
+      window.scrollBy({ top: -Math.round(window.innerHeight * .75), behavior: "smooth" });
+      setStatus("Scrolling up.");
+      return;
+    }
+
+    if (/\b(go to top|scroll to top|top of page)\b/.test(command)) {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      setStatus("Going to the top of the page.");
+      return;
+    }
+
+    if (/\b(go to bottom|scroll to bottom|bottom of page)\b/.test(command)) {
+      window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "smooth" });
+      setStatus("Going to the bottom of the page.");
+      return;
+    }
+
+    if (/\b(what|which|list|read).*(webinar|webinars)\b/.test(command) || /\bupcoming webinars\b/.test(command)) {
+      listWebinars();
+      return;
+    }
+
+    if (/\b(register|sign up|reserve).*(webinar|place|spot)\b/.test(command) || /\bregister me\b/.test(command)) {
+      beginWebinarRegistration(webinarTargetFromCommand(raw));
+      return;
+    }
+
+    if (/\b(list|what|which).*(insight|insights|article|articles|topics)\b/.test(command)) {
+      listInsights();
+      return;
+    }
+
+    if (/\b(read).*(article|insight|buying|selling|financing|commercial|residential|strategy|market)\b/.test(command)) {
+      const target = cleanTarget(raw, ["read", "the", "article", "insight", "about", "please"]);
+      openInsight(target || "this", true);
+      return;
+    }
+
+    if (/\b(open|show|go to).*(article|insight)\b/.test(command)) {
+      const target = cleanTarget(raw, ["open", "show", "go", "to", "the", "article", "insight"]);
+      openInsight(target || "this", false);
+      return;
+    }
+
+    if (/\b(read this article|read current article)\b/.test(command)) {
+      openInsight("this", true);
+      return;
+    }
+
+    if (/\b(read this page|read page|read the page)\b/.test(command)) {
+      readPage();
+      return;
+    }
+
+    if (/\b(homes?|properties?|residential).*(for sale|buy|purchase)\b/.test(command) || /\bshow for sale\b/.test(command)) {
+      showResidentialType("Sale");
+      return;
+    }
+
+    if (/\b(homes?|properties?|residential).*(for lease|rent|rental)\b/.test(command) || /\bshow for lease\b/.test(command)) {
+      showResidentialType("Lease");
+      return;
+    }
+
+    if (/\b(read|list).*(listings|properties|homes)\b/.test(command)) {
+      readListings();
+      return;
+    }
+
+    if (/\b(open|view).*(listing|property)\b/.test(command)) {
+      openListing(raw);
+      return;
+    }
+
+    if (/\b(request details|ask about|send inquiry|make inquiry|contact request)\b/.test(command)) {
+      beginInquiry();
+      return;
+    }
+
+    if (/\b(what is|whats|tell me).*(phone|number|email|contact)\b/.test(command)) {
+      speakShort("Amir Geran can be reached at 416 616 4634, or by email at amirkgaran at gmail dot com.");
+      return;
+    }
+
+    for (const page of PAGE_MAP) {
+      const matched = page.phrases.some(phrase =>
+        command === phrase ||
+        command.includes(`go to ${phrase}`) ||
+        command.includes(`open ${phrase}`) ||
+        command.includes(`${phrase} page`)
+      );
+
+      if (matched) {
+        navigate(page.url, page.label);
+        return;
+      }
+    }
+
+    speakShort("I did not understand that command. Say “help” to hear examples, or type a command below.");
+  }
+
+  async function processUrlActions() {
+    const url = new URL(window.location.href);
+    const action = url.searchParams.get("voiceAction");
+    const article = url.searchParams.get("voiceArticle");
+    const mode = url.searchParams.get("voiceMode");
+    const target = url.searchParams.get("target");
+
+    if (!action && !article) return;
+
+    url.searchParams.delete("voiceAction");
+    url.searchParams.delete("voiceArticle");
+    url.searchParams.delete("voiceMode");
+    url.searchParams.delete("target");
+    history.replaceState(null, "", url.pathname + (url.search ? url.search : "") + url.hash);
+
+    openPanel();
+
+    if (article) {
+      await openInsight(article, mode === "read");
+      return;
+    }
+
+    if (action === "register") {
+      await beginWebinarRegistration(target || "next");
+      return;
+    }
+
+    if (action === "listWebinars") {
+      await listWebinars();
+      return;
+    }
+
+    if (action === "listInsights") {
+      await listInsights();
+      return;
+    }
+
+    if (action === "inquiry") {
+      await beginInquiry();
+    }
+  }
+
+  fab.addEventListener("click", () => {
+    if (panel.hidden) {
+      openPanel();
+      setStatus("Tap Speak and say a command, or type one below.");
+    } else {
+      closePanel();
+    }
+  });
+
+  close.addEventListener("click", closePanel);
+
+  speakButton.addEventListener("click", () => {
+    if (listening) {
+      stopRecognition();
+      return;
+    }
+    startListening();
+  });
+
+  commandForm.addEventListener("submit", event => {
+    event.preventDefault();
+    const value = commandInput.value.trim();
+    if (!value) return;
+    setTranscript(value);
+    commandInput.value = "";
+    handleCommand(value);
+  });
+
+  root.querySelectorAll("[data-command]").forEach(button => {
+    button.addEventListener("click", () => {
+      const value = button.dataset.command || "";
+      setTranscript(value);
+      handleCommand(value);
+    });
+  });
+
+  processUrlActions();
+})();
