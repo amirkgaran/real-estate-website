@@ -5,6 +5,16 @@
   const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   const synth = window.speechSynthesis || null;
 
+  /* AI intent layer. The Supabase publishable key is browser-safe.
+     The OpenAI API key never appears in this file; it stays in the Edge Function secret. */
+  const AI_ENDPOINT = "https://mkkouaoqnyskffeabeyx.supabase.co/functions/v1/voice-ai";
+  const AI_PUBLISHABLE_KEY =
+    window.MYINVEST_CONFIG?.supabaseAnonKey ||
+    "sb_publishable_lsJoIQoYM4IlkL4c9AXi4A_mReHdLS6";
+
+  let aiHistory = [];
+  let aiBusy = false;
+
   const PAGE_MAP = [
     { phrases: ["multi residential", "multi-residential"], url: "multi-residential.html", label: "Multi Residential" },
     { phrases: ["financial market", "financial markets"], url: "financial-market.html", label: "Financial Market" },
@@ -1087,6 +1097,214 @@
     );
   }
 
+  function aiPageContext() {
+    const main = document.querySelector("main");
+    const headings = [...document.querySelectorAll("main h1, main h2, main h3")]
+      .map(node => node.textContent?.trim())
+      .filter(Boolean)
+      .slice(0, 24);
+
+    const insightTopics = [...document.querySelectorAll(".insight-card")].map(card => ({
+      category: card.querySelector(".eyebrow")?.textContent?.trim() || "",
+      title: card.querySelector("h2")?.textContent?.trim() || ""
+    })).slice(0, 20);
+
+    const webinars = [...document.querySelectorAll(".webinar-card")].map(card => ({
+      title: card.querySelector("h3")?.textContent?.trim() || "",
+      date: card.querySelector(".webinar-date")?.textContent?.trim() || "",
+      time: card.querySelector(".webinar-time")?.textContent?.trim() || ""
+    })).slice(0, 12);
+
+    const listings = [...document.querySelectorAll(".listing-list-card, .public-listing-card")].map(card => ({
+      title: card.querySelector("h3")?.textContent?.trim() || "",
+      price: card.querySelector(".listing-list-price, .listing-price")?.textContent?.trim() || "",
+      location: card.querySelector(".listing-list-location, .listing-location")?.textContent?.trim() || ""
+    })).slice(0, 20);
+
+    return {
+      page: currentPage(),
+      title: document.title,
+      category: document.body.dataset.category || "",
+      headings,
+      insight_topics: insightTopics,
+      webinars,
+      listings,
+      visible_text: String(main?.innerText || "").replace(/\s+/g, " ").trim().slice(0, 3500)
+    };
+  }
+
+  function rememberAi(role, content) {
+    if (!content) return;
+    aiHistory.push({ role, content: String(content).slice(0, 1200) });
+    if (aiHistory.length > 8) aiHistory = aiHistory.slice(-8);
+  }
+
+  async function callAiIntent(userMessage) {
+    const response = await fetch(AI_ENDPOINT, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": AI_PUBLISHABLE_KEY
+      },
+      body: JSON.stringify({
+        message: String(userMessage || "").slice(0, 1200),
+        history: aiHistory,
+        page_context: aiPageContext()
+      })
+    });
+
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok || !data?.ok || !data?.decision) {
+      throw new Error(data?.message || `AI request failed (${response.status})`);
+    }
+
+    return data.decision;
+  }
+
+  function aiNavigateTarget(target = "") {
+    const value = normalize(target);
+    const map = [
+      { names: ["home", "home page"], url: "index.html", label: "Home" },
+      { names: ["about", "about amir"], url: "about.html", label: "About" },
+      { names: ["webinar", "webinars"], url: "webinars.html", label: "Webinars" },
+      { names: ["insight", "insights", "education", "articles"], url: "insights.html", label: "Insights" },
+      { names: ["contact"], url: "contact.html", label: "Contact" },
+      { names: ["residential"], url: "residential.html", label: "Residential" },
+      { names: ["multi residential", "multi-residential"], url: "multi-residential.html", label: "Multi Residential" },
+      { names: ["commercial"], url: "commercial.html", label: "Commercial" },
+      { names: ["financial market", "financial markets"], url: "financial-market.html", label: "Financial Market" }
+    ];
+
+    return map.find(item => item.names.some(name => value === name || value.includes(name))) || null;
+  }
+
+  function speakAiReply(reply, listenAgain = false) {
+    const text = String(reply || "").trim();
+    if (!text) {
+      if (listenAgain) startListening();
+      return;
+    }
+
+    if (text.length > 360 && !listenAgain) {
+      speakLong(text, "AI response");
+    } else {
+      speakShort(text, { listenAfter: listenAgain, sticky: listenAgain });
+    }
+  }
+
+  async function executeAiDecision(decision) {
+    const action = String(decision?.action || "answer");
+    const target = String(decision?.target || "").trim();
+    const reply = String(decision?.reply || "").trim();
+    const listenAgain = !!decision?.listen_again;
+
+    rememberAi("assistant", reply || `${action}${target ? `: ${target}` : ""}`);
+
+    switch (action) {
+      case "navigate": {
+        const destination = aiNavigateTarget(target);
+        if (!destination) {
+          speakAiReply(reply || "Which section would you like to open?", true);
+          return;
+        }
+        if (reply) showBubble(reply);
+        navigate(destination.url, destination.label);
+        return;
+      }
+
+      case "open_insight":
+        if (reply) showBubble(reply);
+        await openInsight(target || "this", false);
+        return;
+
+      case "read_insight":
+        if (reply) showBubble(reply);
+        await openInsight(target || "this", true);
+        return;
+
+      case "list_insights":
+        if (reply) showBubble(reply);
+        await listInsights();
+        return;
+
+      case "list_webinars":
+        if (reply) showBubble(reply);
+        await listWebinars();
+        return;
+
+      case "register_webinar":
+        if (reply) showBubble(reply);
+        await beginWebinarRegistration(target || "next");
+        return;
+
+      case "show_residential_sale":
+        if (reply) showBubble(reply);
+        showResidentialType("Sale");
+        return;
+
+      case "show_residential_lease":
+        if (reply) showBubble(reply);
+        showResidentialType("Lease");
+        return;
+
+      case "read_listings":
+        if (reply) showBubble(reply);
+        await readListings();
+        return;
+
+      case "open_listing":
+        if (reply) showBubble(reply);
+        await openListing(`open property ${target}`);
+        return;
+
+      case "start_inquiry":
+        if (reply) showBubble(reply);
+        await beginInquiry();
+        return;
+
+      case "read_page":
+        if (reply) showBubble(reply);
+        readPage();
+        return;
+
+      case "contact_info":
+        speakAiReply(reply || "Amir Geran can be reached at 416 616 4634, or at amirkgaran at gmail dot com.");
+        return;
+
+      case "clarify":
+        speakAiReply(reply || "Could you tell me a little more about what you mean?", true);
+        return;
+
+      case "answer":
+      case "none":
+      default:
+        speakAiReply(reply || "I can help with the website, real estate education, listings and webinars.", listenAgain);
+        return;
+    }
+  }
+
+  async function handleAiCommand(raw) {
+    if (aiBusy) {
+      showBubble("I'm still thinking about your last request.");
+      return;
+    }
+
+    aiBusy = true;
+    showBubble("Thinking…", { sticky: true });
+    rememberAi("user", raw);
+
+    try {
+      const decision = await callAiIntent(raw);
+      await executeAiDecision(decision);
+    } catch (error) {
+      console.error("MyInvest AI assistant error:", error);
+      showBubble("I couldn't reach the AI assistant. Try a direct command such as “go to Insights” or “show homes for sale”.");
+    } finally {
+      aiBusy = false;
+    }
+  }
+
   function handleCommand(raw) {
     const command = normalize(raw);
 
@@ -1238,7 +1456,7 @@
       }
     }
 
-    speakShort("I didn't understand that. Tap the microphone and say “help” for examples.");
+    handleAiCommand(raw);
   }
 
   async function processUrlActions() {
