@@ -1,42 +1,18 @@
-MYINVEST SEO META TAG UPDATE
+MYINVEST IPHONE MENU FIX
 
-UPLOAD THESE 3 FILES TO THE GITHUB ROOT:
+Upload only:
+premium-header.css
 
-1. script.js        -> REPLACE the existing file
-2. seo-meta.js      -> NEW file
-3. thank-you.html   -> REPLACE the existing file
+to the GitHub root and REPLACE the existing file.
 
-Do NOT replace styles.css.
-Do NOT touch CNAME.
-Do NOT delete the logo, voice, webinar, Insights, or Supabase files.
+This fixes the iPhone navigation so:
+- menu is closed by default
+- hamburger tap opens it
+- selecting a link closes it again
 
-WHAT THIS ADDS
-- Unique page descriptions
-- robots index/follow directives
-- noindex for Admin
-- noindex for Thank You
-- canonical URLs
-- Open Graph tags for sharing
-- Twitter/X card tags
-- author and theme-color metadata
-- MyInvest/Amir Geran structured data on the homepage
-- Dynamic listing title/description/image metadata after a listing loads
+No other files need to be changed.
 
-PAGES COVERED
-Home
-About
-Contact
-Residential
-Multi Residential
-Commercial
-Financial Market
-Webinars
-Insights
-Listing Detail
-Admin
-Thank You
-
-AFTER UPLOAD
-Wait about 1 minute, then hard refresh:
-Windows: Ctrl + Shift + R
-iPhone: refresh Safari
+After commit:
+1. Wait about 1 minute
+2. Refresh Safari
+3. If needed, close the Safari tab and reopen www.myinvest.ca

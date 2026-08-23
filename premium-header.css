@@ -114,6 +114,15 @@
     min-height: 82px !important;
   }
 
+  /* Mobile menu must stay closed until the hamburger is tapped */
+  .nav-links {
+    display: none !important;
+  }
+
+  .nav-links.open {
+    display: flex !important;
+  }
+
   .brand-logo {
     height: 54px !important;
     max-width: min(300px, 68vw) !important;
