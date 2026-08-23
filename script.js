@@ -1,6 +1,14 @@
 const menuToggle = document.getElementById("menuToggle");
 const navLinks = document.getElementById("navLinks");
 
+/* Load site-wide SEO/meta management. */
+if (!document.querySelector('script[data-seo-meta]')) {
+  const seoScript = document.createElement("script");
+  seoScript.src = "seo-meta.js?v=1";
+  seoScript.dataset.seoMeta = "true";
+  document.head.appendChild(seoScript);
+}
+
 /* Install the Amir Geran branded header everywhere this shared script is used. */
 const siteBrand = document.querySelector(".brand");
 if (siteBrand) {

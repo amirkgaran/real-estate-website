@@ -1,15 +1,42 @@
-Upload these 3 files to the GitHub ROOT:
+MYINVEST SEO META TAG UPDATE
 
-1) script.js                    -> REPLACE existing
-2) premium-header.css           -> REPLACE existing
-3) amir-geran-header-logo.png   -> NEW file
+UPLOAD THESE 3 FILES TO THE GITHUB ROOT:
 
-Do NOT upload/replace styles.css.
+1. script.js        -> REPLACE the existing file
+2. seo-meta.js      -> NEW file
+3. thank-you.html   -> REPLACE the existing file
+
+Do NOT replace styles.css.
 Do NOT touch CNAME.
+Do NOT delete the logo, voice, webinar, Insights, or Supabase files.
 
-This version uses a brand-new image filename, so browser cache cannot keep showing the old faded PNG.
+WHAT THIS ADDS
+- Unique page descriptions
+- robots index/follow directives
+- noindex for Admin
+- noindex for Thank You
+- canonical URLs
+- Open Graph tags for sharing
+- Twitter/X card tags
+- author and theme-color metadata
+- MyInvest/Amir Geran structured data on the homepage
+- Dynamic listing title/description/image metadata after a listing loads
 
-After committing:
-- wait about 1 minute
-- open https://www.myinvest.ca/index.html
-- press Ctrl + Shift + R
+PAGES COVERED
+Home
+About
+Contact
+Residential
+Multi Residential
+Commercial
+Financial Market
+Webinars
+Insights
+Listing Detail
+Admin
+Thank You
+
+AFTER UPLOAD
+Wait about 1 minute, then hard refresh:
+Windows: Ctrl + Shift + R
+iPhone: refresh Safari
