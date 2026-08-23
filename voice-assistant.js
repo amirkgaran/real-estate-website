@@ -4,6 +4,12 @@
 
   const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   const synth = window.speechSynthesis || null;
+  const isIOS =
+    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+  let preferredVoice = null;
+  let speechPrimed = false;
 
   const PAGE_MAP = [
     { phrases: ["multi residential", "multi-residential"], url: "multi-residential.html", label: "Multi Residential" },
@@ -194,6 +200,98 @@
     if (update) showBubble("Reading stopped.");
   }
 
+  function refreshPreferredVoice() {
+    if (!synth) return null;
+
+    const voices = synth.getVoices?.() || [];
+    preferredVoice =
+      voices.find(v => /^en-CA$/i.test(v.lang)) ||
+      voices.find(v => /^en-US$/i.test(v.lang)) ||
+      voices.find(v => /^en-GB$/i.test(v.lang)) ||
+      voices.find(v => /^en/i.test(v.lang)) ||
+      voices[0] ||
+      null;
+
+    return preferredVoice;
+  }
+
+  if (synth) {
+    refreshPreferredVoice();
+    synth.addEventListener?.("voiceschanged", refreshPreferredVoice);
+  }
+
+  function configureUtterance(utterance, rate = 0.96) {
+    utterance.lang = preferredVoice?.lang || "en-CA";
+    utterance.rate = rate;
+    utterance.volume = 1;
+    if (preferredVoice) utterance.voice = preferredVoice;
+    return utterance;
+  }
+
+  function waitForMicRelease(callback) {
+    suspendAutoRestart = true;
+
+    let completed = false;
+    const finish = () => {
+      if (completed) return;
+      completed = true;
+      const delay = isIOS ? 320 : 40;
+      window.setTimeout(callback, delay);
+    };
+
+    if (!recognition || !listening) {
+      finish();
+      return;
+    }
+
+    recognition.addEventListener("end", finish, { once: true });
+
+    try {
+      recognition.stop();
+    } catch (_) {
+      finish();
+    }
+
+    // iOS occasionally delays the recognition "end" event.
+    window.setTimeout(finish, isIOS ? 950 : 500);
+  }
+
+  function primeIOSSpeech(done) {
+    if (!isIOS || !synth || !window.SpeechSynthesisUtterance || speechPrimed) {
+      speechPrimed = true;
+      done();
+      return;
+    }
+
+    refreshPreferredVoice();
+
+    try {
+      synth.cancel();
+      synth.resume();
+
+      // A tiny, silent utterance is started directly from the user's tap.
+      // This helps Safari activate its speech output session before microphone use.
+      const unlock = configureUtterance(new SpeechSynthesisUtterance("ready"), 1.0);
+      unlock.volume = 0.01;
+
+      let finished = false;
+      const finish = () => {
+        if (finished) return;
+        finished = true;
+        speechPrimed = true;
+        window.setTimeout(done, 90);
+      };
+
+      unlock.onend = finish;
+      unlock.onerror = finish;
+      synth.speak(unlock);
+      window.setTimeout(finish, 700);
+    } catch (_) {
+      speechPrimed = true;
+      done();
+    }
+  }
+
   function chunkText(text, max = 230) {
     const clean = String(text || "").replace(/\s+/g, " ").trim();
     if (!clean) return [];
@@ -245,21 +343,32 @@
     }
 
     stopReading(false);
-    suspendAutoRestart = true;
-    stopRecognition();
 
-    const utterance = new SpeechSynthesisUtterance(message);
-    utterance.lang = "en-CA";
-    utterance.rate = 0.96;
+    waitForMicRelease(() => {
+      try {
+        refreshPreferredVoice();
+        synth.cancel();
+        synth.resume();
 
-    const finish = () => {
-      suspendAutoRestart = false;
-      if (shouldResume) scheduleListening(220);
-    };
+        const utterance = configureUtterance(
+          new SpeechSynthesisUtterance(message),
+          0.96
+        );
 
-    utterance.onend = finish;
-    utterance.onerror = finish;
-    synth.speak(utterance);
+        const finish = () => {
+          suspendAutoRestart = false;
+          if (shouldResume) scheduleListening(isIOS ? 450 : 220);
+        };
+
+        utterance.onend = finish;
+        utterance.onerror = finish;
+        synth.speak(utterance);
+      } catch (error) {
+        console.warn("Speech synthesis failed:", error);
+        suspendAutoRestart = false;
+        if (shouldResume) scheduleListening(450);
+      }
+    });
   }
 
   function speakLong(text, label = "Reading") {
@@ -270,8 +379,6 @@
     }
 
     stopReading(false);
-    suspendAutoRestart = true;
-    stopRecognition();
 
     readQueue = chunkText(text);
     readIndex = 0;
@@ -284,33 +391,68 @@
       return;
     }
 
-    showBubble(`${label}… The assistant will listen again when it finishes. Tap the mic to stop immediately.`, { sticky: true });
+    showBubble(
+      `${label}… The assistant will listen again when it finishes. Tap the mic to stop immediately.`,
+      { sticky: true }
+    );
 
-    const next = () => {
-      if (!reading || readIndex >= readQueue.length) {
-        reading = false;
-        readQueue = [];
+    waitForMicRelease(() => {
+      refreshPreferredVoice();
 
-        if (highlighted) {
-          highlighted.classList.remove("voice-highlight");
-          highlighted = null;
+      try {
+        synth.cancel();
+        synth.resume();
+      } catch (_) {}
+
+      const next = () => {
+        if (!reading || readIndex >= readQueue.length) {
+          reading = false;
+          readQueue = [];
+
+          if (highlighted) {
+            highlighted.classList.remove("voice-highlight");
+            highlighted = null;
+          }
+
+          suspendAutoRestart = false;
+          showBubble("Finished reading. Listening again…", { sticky: true });
+          scheduleListening(isIOS ? 500 : 250);
+          return;
         }
 
-        suspendAutoRestart = false;
-        showBubble("Finished reading. Listening again…", { sticky: true });
-        scheduleListening(250);
-        return;
-      }
+        try {
+          // Resume before each chunk because Safari can pause the speech engine
+          // after microphone/audio-session transitions.
+          synth.resume();
 
-      const utterance = new SpeechSynthesisUtterance(readQueue[readIndex++]);
-      utterance.lang = "en-CA";
-      utterance.rate = 0.94;
-      utterance.onend = next;
-      utterance.onerror = next;
-      synth.speak(utterance);
-    };
+          const utterance = configureUtterance(
+            new SpeechSynthesisUtterance(readQueue[readIndex++]),
+            0.94
+          );
 
-    next();
+          let movedOn = false;
+          const advance = () => {
+            if (movedOn) return;
+            movedOn = true;
+            window.setTimeout(next, isIOS ? 90 : 0);
+          };
+
+          utterance.onend = advance;
+          utterance.onerror = advance;
+          synth.speak(utterance);
+
+          // Watchdog for rare iOS Safari cases where onend is not delivered.
+          window.setTimeout(() => {
+            if (!movedOn && !synth.speaking && reading) advance();
+          }, 12000);
+        } catch (error) {
+          console.warn("Speech synthesis chunk failed:", error);
+          next();
+        }
+      };
+
+      next();
+    });
   }
 
   function startListening() {
@@ -1366,7 +1508,7 @@
       return;
     }
 
-    startVoiceSession();
+    primeIOSSpeech(startVoiceSession);
   });
 
   confirmYes.addEventListener("click", () => {
