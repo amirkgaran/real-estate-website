@@ -6,13 +6,13 @@ const siteBrand = document.querySelector(".brand");
 if (siteBrand) {
   siteBrand.classList.add("brand-logo-link");
   siteBrand.setAttribute("aria-label", "Amir Geran home");
-  siteBrand.innerHTML = '<img src="amir-geran-logo-transparent.png" alt="Amir Geran Real Estate Broker" class="brand-logo">';
+  siteBrand.innerHTML = '<img src="amir-geran-header-logo.png?v=2" alt="Amir Geran Real Estate Broker" class="brand-logo">';
 }
 
 if (!document.querySelector('link[data-premium-header]')) {
   const premiumHeaderStyles = document.createElement("link");
   premiumHeaderStyles.rel = "stylesheet";
-  premiumHeaderStyles.href = "premium-header.css";
+  premiumHeaderStyles.href = "premium-header.css?v=2";
   premiumHeaderStyles.dataset.premiumHeader = "true";
   document.head.appendChild(premiumHeaderStyles);
 }
