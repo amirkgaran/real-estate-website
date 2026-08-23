@@ -20,7 +20,8 @@ if (siteBrand) {
 if (!document.querySelector('link[data-premium-header]')) {
   const premiumHeaderStyles = document.createElement("link");
   premiumHeaderStyles.rel = "stylesheet";
-  premiumHeaderStyles.href = "premium-header.css?v=2";
+  /* v=3 forces iPhone Safari to refresh the corrected mobile CSS */
+  premiumHeaderStyles.href = "premium-header.css?v=3";
   premiumHeaderStyles.dataset.premiumHeader = "true";
   document.head.appendChild(premiumHeaderStyles);
 }
@@ -46,17 +47,51 @@ if (navLinks) {
   }
 }
 
+/*
+ * iPhone Safari can restore a page from its back/forward cache with the
+ * previous DOM state, including .nav-links.open. Always reset the mobile
+ * menu when a page is loaded/restored.
+ */
+function closeMobileMenu() {
+  if (!navLinks) return;
+  navLinks.classList.remove("open");
+  if (menuToggle) {
+    menuToggle.setAttribute("aria-expanded", "false");
+  }
+}
+
 if (menuToggle && navLinks) {
+  /* Always start closed. */
+  closeMobileMenu();
+
   menuToggle.addEventListener("click", () => {
     const open = navLinks.classList.toggle("open");
     menuToggle.setAttribute("aria-expanded", String(open));
   });
 
-  navLinks.querySelectorAll("a").forEach((link) => {
-    link.addEventListener("click", () => {
-      navLinks.classList.remove("open");
-      menuToggle.setAttribute("aria-expanded", "false");
-    });
+  navLinks.addEventListener("click", (event) => {
+    if (event.target.closest("a")) {
+      closeMobileMenu();
+    }
+  });
+
+  /* Critical for Safari/iPhone BFCache restores. */
+  window.addEventListener("pageshow", () => {
+    closeMobileMenu();
+  });
+
+  /* Also reset if Safari restores the tab after it was backgrounded. */
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+      closeMobileMenu();
+    }
+  });
+
+  /* Prevent a stale open state when rotating/resizing into mobile layout. */
+  window.addEventListener("resize", () => {
+    if (window.matchMedia("(max-width: 900px)").matches) {
+      closeMobileMenu();
+    }
   });
 }
 

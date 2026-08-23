@@ -1,18 +1,28 @@
-MYINVEST IPHONE MENU FIX
+MYINVEST — IPHONE MENU STATE FIX
 
-Upload only:
-premium-header.css
+Replace ONLY:
+script.js
 
-to the GitHub root and REPLACE the existing file.
+in the GitHub root.
 
-This fixes the iPhone navigation so:
-- menu is closed by default
-- hamburger tap opens it
-- selecting a link closes it again
+WHY:
+The live premium-header.css already has the correct mobile rules.
+iPhone Safari can restore the page with the old `.open` menu state from its
+back/forward cache. This script explicitly removes `.open`:
+- on initial page load
+- on Safari `pageshow` restore
+- when the tab becomes visible again
+- on mobile resize/orientation changes
+- after a navigation link is selected
 
-No other files need to be changed.
+It also changes the premium-header.css query from ?v=2 to ?v=3 to force Safari
+to reload the latest CSS.
 
-After commit:
-1. Wait about 1 minute
-2. Refresh Safari
-3. If needed, close the Safari tab and reopen www.myinvest.ca
+AFTER UPLOAD:
+1. Commit.
+2. Wait about 1 minute.
+3. On iPhone, CLOSE the MyInvest Safari tab completely.
+4. Open a NEW Safari tab.
+5. Visit https://www.myinvest.ca
+
+The menu should now be closed until the hamburger is tapped.
