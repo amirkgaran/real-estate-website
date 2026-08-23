@@ -1140,7 +1140,7 @@
 
   function showHelp() {
     speakLong(
-      "You can say: go to Insights. Read the Buying article. List insights. What webinars are coming up. Register for the next webinar. Show homes for sale. Read listings. Request details. Read this page. Pause reading. Resume reading. Or stop reading.",
+      "You can say: go to Insights. Read the Buying article. Go to Residential, then say for sale or for lease. What webinars are coming up. Register for the next webinar. Read listings. Request details. On About, say read it. Pause reading. Resume reading. Or stop listening.",
       "Voice help"
     );
   }
@@ -1253,17 +1253,31 @@
       return;
     }
 
-    if (/\b(read this page|read page|read the page)\b/.test(command)) {
+    if (
+      /\b(read this page|read page|read the page|read it|read this|read about amir|read about)\b/.test(command) ||
+      (currentPage() === "about.html" && /^(read|read it|read this|read about amir)$/.test(command))
+    ) {
       readPage();
       return;
     }
 
-    if (/\b(homes?|properties?|residential).*(for sale|buy|purchase)\b/.test(command) || /\bshow for sale\b/.test(command)) {
+    if (
+      /\b(homes?|properties?|residential).*(for sale|sale|buy|purchase)\b/.test(command) ||
+      /\b(show )?for sale\b/.test(command) ||
+      command === "sale" ||
+      command === "buy"
+    ) {
       showResidentialType("Sale");
       return;
     }
 
-    if (/\b(homes?|properties?|residential).*(for lease|rent|rental)\b/.test(command) || /\bshow for lease\b/.test(command)) {
+    if (
+      /\b(homes?|properties?|residential).*(for lease|lease|rent|rental)\b/.test(command) ||
+      /\b(show )?for lease\b/.test(command) ||
+      command === "lease" ||
+      command === "rent" ||
+      command === "rental"
+    ) {
       showResidentialType("Lease");
       return;
     }
