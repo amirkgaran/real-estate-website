@@ -1,6 +1,22 @@
 const menuToggle = document.getElementById("menuToggle");
 const navLinks = document.getElementById("navLinks");
 
+/* Install the Amir Geran branded header everywhere this shared script is used. */
+const siteBrand = document.querySelector(".brand");
+if (siteBrand) {
+  siteBrand.classList.add("brand-logo-link");
+  siteBrand.setAttribute("aria-label", "Amir Geran home");
+  siteBrand.innerHTML = '<img src="amir-geran-logo-transparent.png" alt="Amir Geran Real Estate Broker" class="brand-logo">';
+}
+
+if (!document.querySelector('link[data-premium-header]')) {
+  const premiumHeaderStyles = document.createElement("link");
+  premiumHeaderStyles.rel = "stylesheet";
+  premiumHeaderStyles.href = "premium-header.css";
+  premiumHeaderStyles.dataset.premiumHeader = "true";
+  document.head.appendChild(premiumHeaderStyles);
+}
+
 if (navLinks) {
   const contactLink = navLinks.querySelector('a[href="contact.html"]');
 

@@ -1,0 +1,159 @@
+/* Amir Geran premium branded header */
+.site-header {
+  background: rgba(255, 253, 248, 0.97) !important;
+  border-bottom: 1px solid rgba(184, 145, 72, 0.34) !important;
+  box-shadow: 0 8px 28px rgba(8, 24, 42, 0.07);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.nav-wrap {
+  min-height: 96px !important;
+  gap: 28px;
+}
+
+.brand.brand-logo-link {
+  width: auto !important;
+  height: auto !important;
+  border: 0 !important;
+  padding: 4px 0 !important;
+  display: flex !important;
+  align-items: center;
+  line-height: 0;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+.brand-logo {
+  display: block;
+  width: auto;
+  height: 68px;
+  max-width: min(390px, 43vw);
+  object-fit: contain;
+}
+
+.nav-links {
+  border: 0 !important;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: transparent;
+}
+
+.nav-links a {
+  position: relative;
+  border: 0 !important;
+  padding: 14px 15px !important;
+  color: #102239;
+  font-size: 0.79rem;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  text-decoration: none;
+  background: transparent !important;
+  transition: color 0.2s ease;
+}
+
+.nav-links a::after {
+  content: "";
+  position: absolute;
+  left: 15px;
+  right: 15px;
+  bottom: 7px;
+  height: 1px;
+  background: #bd9148;
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform 0.2s ease;
+}
+
+.nav-links a:hover,
+.nav-links a:focus-visible {
+  color: #bd9148 !important;
+}
+
+.nav-links a:hover::after,
+.nav-links a:focus-visible::after {
+  transform: scaleX(1);
+}
+
+.menu-toggle {
+  width: 44px;
+  height: 44px;
+  padding: 8px;
+  border: 1px solid rgba(189, 145, 72, 0.55) !important;
+  border-radius: 50%;
+}
+
+.menu-toggle span {
+  background: #102239 !important;
+  width: 23px !important;
+  margin: 4px auto !important;
+}
+
+@media (max-width: 1080px) and (min-width: 901px) {
+  .brand-logo {
+    height: 58px;
+    max-width: 330px;
+  }
+
+  .nav-links a {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+    font-size: 0.73rem;
+  }
+}
+
+@media (max-width: 900px) {
+  .nav-wrap {
+    min-height: 82px !important;
+  }
+
+  .brand-logo {
+    height: 54px;
+    max-width: min(300px, 68vw);
+  }
+
+  .nav-links {
+    top: 82px !important;
+    left: 15px !important;
+    right: 15px !important;
+    padding: 8px;
+    border: 1px solid rgba(189, 145, 72, 0.35) !important;
+    background: rgba(255, 253, 248, 0.99) !important;
+    box-shadow: 0 18px 38px rgba(8, 24, 42, 0.12);
+  }
+
+  .nav-links a {
+    padding: 14px 16px !important;
+    border-bottom: 1px solid rgba(16, 34, 57, 0.08) !important;
+  }
+
+  .nav-links a:last-child {
+    border-bottom: 0 !important;
+  }
+
+  .nav-links a::after {
+    display: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .nav-wrap {
+    min-height: 72px !important;
+  }
+
+  .brand-logo {
+    height: 43px;
+    max-width: 70vw;
+  }
+
+  .nav-links {
+    top: 72px !important;
+  }
+
+  .menu-toggle {
+    width: 40px;
+    height: 40px;
+  }
+}
