@@ -1,13 +1,25 @@
 const menuToggle = document.getElementById("menuToggle");
 const navLinks = document.getElementById("navLinks");
 
-if (navLinks && !navLinks.querySelector('a[href="webinars.html"]')) {
-  const webinarLink = document.createElement("a");
-  webinarLink.href = "webinars.html";
-  webinarLink.textContent = "Webinars";
+if (navLinks) {
   const contactLink = navLinks.querySelector('a[href="contact.html"]');
-  if (contactLink) navLinks.insertBefore(webinarLink, contactLink);
-  else navLinks.appendChild(webinarLink);
+
+  if (!navLinks.querySelector('a[href="webinars.html"]')) {
+    const webinarLink = document.createElement("a");
+    webinarLink.href = "webinars.html";
+    webinarLink.textContent = "Webinars";
+    if (contactLink) navLinks.insertBefore(webinarLink, contactLink);
+    else navLinks.appendChild(webinarLink);
+  }
+
+  if (!navLinks.querySelector('a[href="insights.html"]')) {
+    const insightsLink = document.createElement("a");
+    insightsLink.href = "insights.html";
+    insightsLink.textContent = "Insights";
+    const currentContactLink = navLinks.querySelector('a[href="contact.html"]');
+    if (currentContactLink) navLinks.insertBefore(insightsLink, currentContactLink);
+    else navLinks.appendChild(insightsLink);
+  }
 }
 
 if (menuToggle && navLinks) {
