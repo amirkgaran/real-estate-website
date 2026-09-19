@@ -1,163 +1,374 @@
 (() => {
   const cfg = window.MYINVEST_CONFIG || {};
-  const form = document.getElementById("mlsImportForm");
-  if (!form || !window.supabase || !cfg.supabaseUrl || !cfg.supabaseAnonKey) return;
+  const configured =
+    cfg.supabaseUrl &&
+    cfg.supabaseAnonKey &&
+    !cfg.supabaseUrl.includes("PASTE_") &&
+    !cfg.supabaseAnonKey.includes("PASTE_");
+
+  const setupWarning = document.getElementById("setupWarning");
+  const loginPanel = document.getElementById("loginPanel");
+  const dashboard = document.getElementById("dashboard");
+  const loginForm = document.getElementById("loginForm");
+  const loginMessage = document.getElementById("loginMessage");
+  const signedInAs = document.getElementById("signedInAs");
+  const logoutButton = document.getElementById("logoutButton");
+  const listingForm = document.getElementById("listingForm");
+  const formMessage = document.getElementById("formMessage");
+  const adminListings = document.getElementById("adminListings");
+  const adminListingStatus = document.getElementById("adminListingStatus");
+  const refreshButton = document.getElementById("refreshButton");
+  const cancelEditButton = document.getElementById("cancelEditButton");
+  const formTitle = document.getElementById("formTitle");
+  const saveButton = document.getElementById("saveButton");
+
+  const siteContentForm = document.getElementById("siteContentForm");
+  const aboutHeadingAdmin = document.getElementById("aboutHeadingAdmin");
+  const aboutDescriptionAdmin = document.getElementById("aboutDescriptionAdmin");
+  const contentMessage = document.getElementById("contentMessage");
+  const saveContentButton = document.getElementById("saveContentButton");
+
+  if (!configured) {
+    setupWarning.classList.remove("hidden");
+    loginPanel.classList.add("hidden");
+    return;
+  }
 
   const client = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey);
-  const input = document.getElementById("mlsNumber");
-  const button = document.getElementById("mlsImportButton");
-  const message = document.getElementById("mlsImportMessage");
-  const preview = document.getElementById("mlsImportPreview");
 
-  const listingFields = {
+  const els = {
+    id: document.getElementById("listingId"),
     category: document.getElementById("category"),
     listingType: document.getElementById("listingType"),
+    listingTypeField: document.getElementById("listingTypeField"),
     title: document.getElementById("title"),
     price: document.getElementById("price"),
     location: document.getElementById("location"),
     description: document.getElementById("description"),
     highlights: document.getElementById("highlights"),
+    images: document.getElementById("images"),
     published: document.getElementById("published")
   };
 
-  let importedImages = [];
+  let currentListings = [];
 
-  const esc = (value = "") => String(value).replace(/[&<>"']/g, ch => ({
-    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
-  }[ch]));
-
-  function money(value) {
-    if (value === null || value === undefined || value === "") return "";
-    const n = Number(value);
-    if (!Number.isFinite(n)) return String(value);
-    return new Intl.NumberFormat("en-CA", {
-      style: "currency", currency: "CAD", maximumFractionDigits: 0
-    }).format(n);
+  function syncListingTypeField() {
+    const residential = els.category.value === "Residential";
+    els.listingTypeField.classList.toggle("hidden", !residential);
+    els.listingType.required = residential;
+    if (!residential) els.listingType.value = "Sale";
   }
 
-  function generateDescription(p) {
-    const bits = [];
-    const beds = Number(p.bedrooms || 0);
-    const baths = Number(p.bathrooms || 0);
+  const escapeHtml = (value = "") =>
+    String(value).replace(/[&<>"']/g, (ch) => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
+    }[ch]));
 
-    if (p.property_type) bits.push(String(p.property_type).toLowerCase());
-    if (beds) bits.push(`${beds}-bedroom`);
-    if (baths) bits.push(`${baths}-bathroom`);
+  function resetForm() {
+    listingForm.reset();
+    els.id.value = "";
+    els.category.value = "Residential";
+    els.listingType.value = "Sale";
+    syncListingTypeField();
+    els.published.checked = true;
+    formTitle.textContent = "Add listing";
+    saveButton.textContent = "Publish listing";
+    cancelEditButton.classList.add("hidden");
+    formMessage.textContent = "";
+    window.MYINVEST_IMPORTED_MLS_IMAGES = [];
+  }
 
-    const introSubject = bits.length
-      ? `This ${bits.join(", ")} property`
-      : "This property";
+  function setEditing(item) {
+    els.id.value = item.id;
+    els.category.value = item.category;
+    els.listingType.value = item.listing_type || "Sale";
+    syncListingTypeField();
+    els.title.value = item.title || "";
+    els.price.value = item.price || "";
+    els.location.value = item.location || "";
+    els.description.value = item.description || "";
+    els.highlights.value = item.highlights || "";
+    els.published.checked = !!item.published;
+    formTitle.textContent = "Edit listing";
+    saveButton.textContent = "Save changes";
+    cancelEditButton.classList.remove("hidden");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
 
-    const sentences = [];
-    sentences.push(`${introSubject}${p.location ? ` in ${p.location}` : ""} offers a practical opportunity for buyers looking to evaluate location, layout and long-term value.`);
+  async function uploadImages(listingId, files) {
+    const urls = [];
+    for (const file of files) {
+      const cleanName = file.name.replace(/[^a-zA-Z0-9._-]/g, "-");
+      const path = `${listingId}/${Date.now()}-${crypto.randomUUID()}-${cleanName}`;
 
-    const features = [];
-    if (p.living_area) features.push(`${p.living_area} of living space`);
-    if (p.parking_total) features.push(`${p.parking_total} parking space${Number(p.parking_total) === 1 ? "" : "s"}`);
-    if (p.structure_type) features.push(Array.isArray(p.structure_type) ? p.structure_type.join(", ") : p.structure_type);
+      const { error: uploadError } = await client.storage
+        .from("listing-images")
+        .upload(path, file, { upsert: false });
 
-    if (features.length) sentences.push(`Notable property details include ${features.join(", ")}.`);
+      if (uploadError) throw uploadError;
 
-    if (p.public_remarks) {
-      // Preserve factual remarks from the authorized feed, but keep the generated copy concise.
-      const cleaned = String(p.public_remarks).replace(/\s+/g, " ").trim();
-      if (cleaned) sentences.push(cleaned);
+      const { data } = client.storage.from("listing-images").getPublicUrl(path);
+      urls.push(data.publicUrl);
+    }
+    return urls;
+  }
+
+  async function ensureAdmin() {
+    const { data, error } = await client.rpc("is_site_admin");
+    if (error) throw error;
+    return data === true;
+  }
+
+  async function loadSiteContent() {
+    if (!siteContentForm) return;
+    contentMessage.textContent = "Loading About content…";
+
+    const { data, error } = await client
+      .from("site_content")
+      .select("key,value")
+      .in("key", ["about_heading", "about_description"]);
+
+    if (error) {
+      console.error(error);
+      contentMessage.textContent = error.message.includes("site_content")
+        ? "Website content setup is required. Run the supplied Supabase site-content migration once."
+        : error.message;
+      return;
     }
 
-    return sentences.join(" ");
+    const content = Object.fromEntries((data || []).map(row => [row.key, row.value]));
+    aboutHeadingAdmin.value = content.about_heading || "Real estate guidance with an investment mindset.";
+    aboutDescriptionAdmin.value = content.about_description || "Amir Geran is a Broker with International Realty Firm, focused on helping clients evaluate opportunities with attention to value, income potential and long-term growth.";
+    contentMessage.textContent = "";
   }
 
-  function generateHighlights(p) {
-    const lines = [];
-    if (p.mls_number) lines.push(`MLS® ${p.mls_number}`);
-    if (p.property_type) lines.push(p.property_type);
-    if (p.bedrooms) lines.push(`${p.bedrooms} bedroom${Number(p.bedrooms) === 1 ? "" : "s"}`);
-    if (p.bathrooms) lines.push(`${p.bathrooms} bathroom${Number(p.bathrooms) === 1 ? "" : "s"}`);
-    if (p.living_area) lines.push(`${p.living_area} living area`);
-    if (p.parking_total) lines.push(`${p.parking_total} parking space${Number(p.parking_total) === 1 ? "" : "s"}`);
-    if (p.list_price) lines.push(`Listed at ${money(p.list_price)}`);
-    return lines.join("\n");
-  }
-
-  function fillListingForm(p) {
-    const lease = !!p.is_lease;
-
-    listingFields.category.value = "Residential";
-    listingFields.category.dispatchEvent(new Event("change", { bubbles: true }));
-    listingFields.listingType.value = lease ? "Lease" : "Sale";
-
-    listingFields.title.value =
-      p.generated_title ||
-      [p.street_address, p.city].filter(Boolean).join(" — ") ||
-      `MLS® ${p.mls_number}`;
-
-    listingFields.price.value = money(p.lease_amount || p.list_price);
-    listingFields.location.value = p.location || [p.city, p.state_or_province].filter(Boolean).join(", ");
-    listingFields.description.value = generateDescription(p);
-    listingFields.highlights.value = generateHighlights(p);
-    listingFields.published.checked = false;
-
-    importedImages = Array.isArray(p.images) ? p.images.filter(Boolean) : [];
-
-    // admin.js normally persists file uploads. Imported DDF image URLs are already hosted and can be
-    // stored directly. Expose them so admin.js can include them during save.
-    window.MYINVEST_IMPORTED_MLS_IMAGES = importedImages;
-
-    const formTitle = document.getElementById("formTitle");
-    const saveButton = document.getElementById("saveButton");
-    if (formTitle) formTitle.textContent = "Review imported listing";
-    if (saveButton) saveButton.textContent = "Publish listing";
-
-    document.getElementById("listingForm")?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-
-  function renderPreview(p) {
-    const photos = (p.images || []).slice(0, 6);
-    preview.classList.remove("hidden");
-    preview.innerHTML = `
-      <div class="notice" style="margin-top:16px">
-        <strong>Imported MLS® ${esc(p.mls_number || "")}</strong>
-        <div class="small-muted" style="margin-top:6px">
-          ${esc(p.location || "")}${p.list_price ? ` · ${esc(money(p.list_price))}` : ""}
-          ${p.images?.length ? ` · ${p.images.length} photo${p.images.length === 1 ? "" : "s"}` : ""}
-        </div>
-        ${photos.length ? `
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-top:12px">
-            ${photos.map(url => `<img src="${esc(url)}" alt="" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:8px">`).join("")}
-          </div>` : ""}
-        <div class="small-muted" style="margin-top:10px">
-          Review all imported facts and generated wording before publishing.
-        </div>
-      </div>`;
-  }
-
-  form.addEventListener("submit", async event => {
-    event.preventDefault();
-    const mlsNumber = input.value.trim();
-    if (!mlsNumber) return;
-
-    button.disabled = true;
-    message.textContent = "Importing from CREA DDF®…";
-    preview.classList.add("hidden");
+  async function showSession(session) {
+    if (!session) {
+      loginPanel.classList.remove("hidden");
+      dashboard.classList.add("hidden");
+      return;
+    }
 
     try {
-      const { data, error } = await client.functions.invoke("mls-import", {
-        body: { mls_number: mlsNumber }
-      });
-
-      if (error) throw error;
-      if (!data?.ok || !data?.property) {
-        throw new Error(data?.message || "Listing was not found in your authorized DDF® feed.");
+      const admin = await ensureAdmin();
+      if (!admin) {
+        await client.auth.signOut();
+        loginMessage.textContent = "This account is not authorized as a site administrator.";
+        loginPanel.classList.remove("hidden");
+        dashboard.classList.add("hidden");
+        return;
       }
-
-      fillListingForm(data.property);
-      renderPreview(data.property);
-      message.textContent = "Imported. Review the listing below before publishing.";
     } catch (err) {
       console.error(err);
-      message.textContent = err?.message || "Unable to import this listing.";
+      loginMessage.textContent = "Unable to verify administrator access.";
+      return;
+    }
+
+    signedInAs.textContent = session.user.email || "Administrator";
+    loginPanel.classList.add("hidden");
+    dashboard.classList.remove("hidden");
+    await Promise.all([loadAdminListings(), loadSiteContent()]);
+  }
+
+  loginForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    loginMessage.textContent = "Signing in…";
+
+    const email = document.getElementById("loginEmail").value.trim();
+    const password = document.getElementById("loginPassword").value;
+
+    const { data, error } = await client.auth.signInWithPassword({ email, password });
+
+    if (error) {
+      loginMessage.textContent = error.message;
+      return;
+    }
+
+    loginMessage.textContent = "";
+    await showSession(data.session);
+  });
+
+  logoutButton.addEventListener("click", async () => {
+    await client.auth.signOut();
+    resetForm();
+    if (siteContentForm) siteContentForm.reset();
+  });
+
+  client.auth.onAuthStateChange((_event, session) => {
+    showSession(session);
+  });
+
+  if (siteContentForm) {
+    siteContentForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const heading = aboutHeadingAdmin.value.trim();
+      const description = aboutDescriptionAdmin.value.trim();
+
+      if (!heading || !description) {
+        contentMessage.textContent = "Both About fields are required.";
+        return;
+      }
+
+      contentMessage.textContent = "Saving…";
+      saveContentButton.disabled = true;
+
+      const now = new Date().toISOString();
+      const { error } = await client.from("site_content").upsert([
+        { key: "about_heading", value: heading, updated_at: now },
+        { key: "about_description", value: description, updated_at: now }
+      ], { onConflict: "key" });
+
+      saveContentButton.disabled = false;
+
+      if (error) {
+        console.error(error);
+        contentMessage.textContent = error.message.includes("site_content")
+          ? "Unable to save. Run the supplied Supabase site-content migration first."
+          : error.message;
+        return;
+      }
+
+      contentMessage.textContent = "About page saved. Open Preview About to see the update.";
+    });
+  }
+
+  async function loadAdminListings() {
+    adminListingStatus.textContent = "Loading listings…";
+    const { data, error } = await client
+      .from("listings")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      adminListingStatus.textContent = error.message;
+      return;
+    }
+
+    currentListings = data || [];
+    if (!currentListings.length) {
+      adminListingStatus.textContent = "No listings have been added yet.";
+      adminListings.innerHTML = "";
+      return;
+    }
+
+    adminListingStatus.textContent = "";
+    adminListings.innerHTML = currentListings.map((item) => {
+      const image = Array.isArray(item.images) && item.images.length
+        ? `<img src="${escapeHtml(item.images[0])}" alt="">`
+        : `<div class="mini-placeholder">No photo</div>`;
+
+      return `
+        <article class="admin-listing-row" data-id="${item.id}">
+          <div class="admin-thumb">${image}</div>
+          <div class="admin-listing-copy">
+            <div class="admin-badges">
+              <span>${escapeHtml(item.category)}</span>
+              ${item.category === "Residential" && item.listing_type ? `<span>For ${escapeHtml(item.listing_type)}</span>` : ""}
+              <span class="${item.published ? "published" : "draft"}">${item.published ? "Published" : "Draft"}</span>
+            </div>
+            <h3>${escapeHtml(item.title)}</h3>
+            <p>${escapeHtml(item.location || "")}${item.price ? ` · ${escapeHtml(item.price)}` : ""}</p>
+          </div>
+          <div class="admin-actions">
+            <button class="text-button edit-button" type="button">Edit</button>
+            <button class="text-button danger delete-button" type="button">Delete</button>
+          </div>
+        </article>`;
+    }).join("");
+
+    adminListings.querySelectorAll(".edit-button").forEach((button) => {
+      button.addEventListener("click", () => {
+        const id = button.closest(".admin-listing-row").dataset.id;
+        const item = currentListings.find((x) => x.id === id);
+        if (item) setEditing(item);
+      });
+    });
+
+    adminListings.querySelectorAll(".delete-button").forEach((button) => {
+      button.addEventListener("click", async () => {
+        const id = button.closest(".admin-listing-row").dataset.id;
+        const item = currentListings.find((x) => x.id === id);
+        if (!item) return;
+        if (!confirm(`Delete "${item.title}"? This cannot be undone.`)) return;
+
+        button.disabled = true;
+        const { error } = await client.from("listings").delete().eq("id", id);
+        if (error) {
+          alert(error.message);
+          button.disabled = false;
+          return;
+        }
+
+        const { data: objects } = await client.storage.from("listing-images").list(id);
+        if (objects && objects.length) {
+          await client.storage.from("listing-images").remove(objects.map((x) => `${id}/${x.name}`));
+        }
+
+        if (els.id.value === id) resetForm();
+        await loadAdminListings();
+      });
+    });
+  }
+
+  listingForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    formMessage.textContent = "Saving…";
+    saveButton.disabled = true;
+
+    try {
+      let id = els.id.value;
+      let existingImages = [];
+
+      if (id) {
+        const existing = currentListings.find((x) => x.id === id);
+        existingImages = Array.isArray(existing?.images) ? existing.images : [];
+      } else {
+        id = crypto.randomUUID();
+      }
+
+      const newImages = els.images.files.length
+        ? await uploadImages(id, [...els.images.files])
+        : [];
+
+      const importedImages = Array.isArray(window.MYINVEST_IMPORTED_MLS_IMAGES)
+        ? window.MYINVEST_IMPORTED_MLS_IMAGES.filter(Boolean)
+        : [];
+
+      const payload = {
+        id,
+        category: els.category.value,
+        listing_type: els.category.value === "Residential" ? els.listingType.value : null,
+        title: els.title.value.trim(),
+        price: els.price.value.trim(),
+        location: els.location.value.trim(),
+        description: els.description.value.trim(),
+        highlights: els.highlights.value.trim(),
+        images: [...existingImages, ...importedImages, ...newImages],
+        published: els.published.checked
+      };
+
+      const { error } = await client
+        .from("listings")
+        .upsert(payload, { onConflict: "id" });
+
+      if (error) throw error;
+
+      formMessage.textContent = els.id.value ? "Changes saved." : "Listing published.";
+      resetForm();
+      await loadAdminListings();
+    } catch (err) {
+      console.error(err);
+      formMessage.textContent = err.message || "Unable to save listing.";
     } finally {
-      button.disabled = false;
+      saveButton.disabled = false;
     }
   });
+
+  els.category.addEventListener("change", syncListingTypeField);
+  syncListingTypeField();
+
+  refreshButton.addEventListener("click", loadAdminListings);
+  cancelEditButton.addEventListener("click", resetForm);
+
+  client.auth.getSession().then(({ data }) => showSession(data.session));
 })();
