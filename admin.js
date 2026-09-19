@@ -92,7 +92,7 @@
     formTitle.textContent = "Edit listing";
     saveButton.textContent = "Save changes";
     cancelEditButton.classList.remove("hidden");
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    listingForm.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   async function uploadImages(listingId, files) {
