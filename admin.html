@@ -136,6 +136,33 @@
       </div>
     </section>
 
+    <section class="admin-panel mls-import-panel">
+      <div class="panel-heading">
+        <div>
+          <p class="eyebrow">Fast listing import</p>
+          <h2>Import from MLS®</h2>
+        </div>
+      </div>
+      <p class="small-muted website-content-help">
+        Enter an MLS® number from your authorized CREA DDF® feed. The listing facts and available
+        photos will be loaded into the Add listing form for review before publishing.
+      </p>
+
+      <form id="mlsImportForm" class="admin-form compact-form">
+        <label>MLS® number
+          <input id="mlsNumber" type="text" required maxlength="80"
+                 placeholder="Example: N12345678" autocomplete="off">
+        </label>
+
+        <div class="content-form-actions">
+          <button id="mlsImportButton" class="button" type="submit">Import listing</button>
+          <p id="mlsImportMessage" class="form-message"></p>
+        </div>
+      </form>
+
+      <div id="mlsImportPreview" class="hidden"></div>
+    </section>
+
     <section class="admin-grid">
       <div class="admin-panel">
         <div class="panel-heading">
@@ -220,6 +247,7 @@
 <script src="config.js"></script>
 <script src="script.js"></script>
 <script src="admin.js"></script>
+<script src="admin-mls.js"></script>
 <script src="admin-webinars.js"></script>
 </body>
 </html>
